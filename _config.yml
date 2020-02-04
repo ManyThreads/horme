@@ -16,7 +16,7 @@
 title: HorMe
 email: gypsephi@b-tu.de
 description: > # this means to ignore newlines until "baseurl:"
-        HorMe is a horizontally scalable, multipurpose execution Environment.
+        HorMe is a horizontally scalable, multipurpose execution environment.
 baseurl: "/horme" # the subpath of your site, e.g. /blog
 url: "https://manythreads.github.io" # the base hostname & protocol for your site
 #baseurl: ""
