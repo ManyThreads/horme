@@ -17,3 +17,5 @@ Thereby, this project seeks to contribute to the better understanding of the des
 ## Funding
 
 The HorMe project is funded by the Federal Ministry of Education and Research (BMBF) of Germany under Grant No. 01IS18072 from May 2019 to April 2022.
+
+[Further Reading](https://www.b-tu.de/fg-betriebssysteme/forschung/projekte/verbundprojekt-horme)
