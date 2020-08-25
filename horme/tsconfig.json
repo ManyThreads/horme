@@ -4,15 +4,16 @@
     "esModuleInterop": true,
     "target": "es6",
     "moduleResolution": "node",
-    "sourceMap": true,
-    "outDir": "bin",
+    "outDir": "dist",
     "strict": true,
+    "sourceMap": true,
+    "rootDirs": [
+      "src/",
+      "services/"
+    ],
     "lib": [
+      "es2015",
       "es2019"
-    ]
-  },
-  "lib": [
-    "es2015",
-    "es2019"
-  ]
+    ],
+  }
 }

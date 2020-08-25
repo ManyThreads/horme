@@ -1,0 +1,26 @@
+version: '3'
+
+services:
+  reconf:
+    build: .
+    volumes:
+      - ./horme:/home/node/horme
+    working_dir: /home/node/horme
+    depends_on:
+      - neo4j
+      - mosquitto
+  neo4j:
+    image: neo4j:4.0.4
+    volumes:
+      - ./dbms/data:/data
+      - ./dbms/logs:/logs
+    environment:
+      - NEO4J_AUTH=neo4j/admin
+    ports:
+      - 7474:7474
+      - 7687:7687
+  mosquitto:
+    image: eclipse-mosquitto:1.6.9
+    ports:
+      - 1883:1883
+

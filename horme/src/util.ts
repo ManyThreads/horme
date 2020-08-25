@@ -1,9 +1,10 @@
 import { promisify } from 'util';
 
 export default {
-    timeout,
     abort,
-    expect
+    expect,
+    timeout,
+    timestamp,
 }
 
 /** asynchronous variant of setTimeout */
@@ -17,7 +18,7 @@ function abort(err?: Error) {
         console.error(err);
     }
 
-    process.exit;
+    process.exit(1);
 }
 
 function expect<T>(maybe: T | undefined, err: string): T {
@@ -26,4 +27,9 @@ function expect<T>(maybe: T | undefined, err: string): T {
     } else {
         throw new Error(err);
     }
+}
+
+function timestamp(): string {
+    const now = new Date().toUTCString();
+    return `[${now}]`;
 }

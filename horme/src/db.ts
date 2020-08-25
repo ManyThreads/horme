@@ -1,24 +1,39 @@
-import { ServiceDescription, ServiceType } from './service'
+import { ServiceDescription } from './service'
+
+/********** exports ******************************************************************************/
 
 export default {
     queryServiceSelection
 }
 
+/** Options for specifying which changes need to be made in the database. */
 export interface ConfigUpdates {
     del: string[];
 }
 
 export interface ServiceSelection {
-    services: Map<ServiceType, ServiceDescription[]>;
+    services: Map<string, ServiceDescription[]>;
 }
 
+/********** implementation ************************************************************************/
+
 async function queryServiceSelection(updates?: ConfigUpdates): Promise<ServiceSelection> {
-    if (updates !== undefined) {
-        console.assert(!was_reconfigured);
-        console.assert(updates.del[0] === 'bri');
-        bedroomLamp.depends = [bedroomSwitch2];
-        failureReasoner.depends = [bedroomSwitch2, bedroomLamp];
-        was_reconfigured = true;
+    if (updates) {
+        if (updateCount === 0) {
+            console.assert(updates.del[0] === 'fra');
+            config.set('light-switch', [bedroomSwitch1]);
+            bedroomLamp.depends = [bedroomSwitch1];
+            failureReasoner.depends = [bedroomSwitch1];
+            updateCount = 1;
+        } else if (updateCount === 1) {
+            console.assert(updates.del[0] === 'bri');
+            config.set('camera-motion-detect', [camera]);
+            bedroomLamp.depends = [];
+            failureReasoner.depends = [];
+            updateCount = 2;
+        } else {
+            throw new Error("exceeded bounds of static reconfiguration scenario");
+        }
     }
 
     return { services: config };
@@ -32,16 +47,17 @@ const bedroomLamp: ServiceDescription = {
     depends: [bedroomSwitch1, bedroomSwitch2]
 };
 const camera: ServiceDescription = { uuid: 'cam', room: 'bedroom', depends: [] };
+
 const failureReasoner: ServiceDescription = {
     uuid: 'flr',
     room: null,
-    depends: [bedroomSwitch1, bedroomSwitch2, bedroomLamp]
+    depends: [bedroomSwitch1, bedroomSwitch2]
 };
 
-const config: Map<ServiceType, ServiceDescription[]> = new Map([
+const config: Map<string, ServiceDescription[]> = new Map([
     ['ceiling-lamp', [bedroomLamp]],
     ['light-switch', [bedroomSwitch1, bedroomSwitch2]],
     ['failure-reasoner', [failureReasoner]]
 ]);
 
-let was_reconfigured = false;
+let updateCount = 0;

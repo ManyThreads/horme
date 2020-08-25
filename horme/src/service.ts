@@ -3,6 +3,8 @@ import fs from 'fs/promises'
 
 import mqtt from 'async-mqtt';
 
+import { ConfigMessage, Subscription } from '../services/common';
+
 import { default as db, ServiceSelection } from './db';
 import { APARTMENT, CONNECTION } from './env';
 import util from './util';
@@ -14,8 +16,7 @@ export default {
     removeService
 }
 
-export type ServiceType = string;
-export type ServiceInstanceEntry = [ServiceType, ServiceDescription];
+export type ServiceInstanceEntry = [string, ServiceDescription];
 export type ServiceProc = ChildProcessWithoutNullStreams;
 
 /** The description of an individual not yet started service instance. */
@@ -51,13 +52,12 @@ type InstantiatedService = ServiceDescription & ServiceHandle;
 /** An instance of an instantiated and configured service. */
 type ConfiguredService = ServiceId
     & { depends: ConfiguredService[] }
-    & ServiceHandle
-    & { reconfigure: boolean };
+    & ServiceHandle;
 
 /********** module state **************************************************************************/
 
 const client = mqtt.connect(CONNECTION);
-const services: Map<ServiceType, ConfiguredService> = new Map();
+const services: Map<string, ConfiguredService> = new Map();
 
 /********** implementation ************************************************************************/
 
@@ -71,47 +71,52 @@ async function configureServices() {
     await Promise.all(instantiated.map(([_, service]) => configureService(service)));
 }
 
+/** Removes the service with the given `uuid` and triggers a full service selection
+ *  and configuration update. */
 async function removeService(uuid: string) {
-    const service = util.expect(services.get(uuid), 'removal of non-existing service requested');
     // retrieve updated service selection from database
     const reconfiguration = await db.queryServiceSelection({ del: [uuid] });
-    // instantiate all new services
-    const instantiatedServices = await instantiateServices(reconfiguration);
 
     // determine services which are no longer present in updated service selection
     const previousServices = Array.from(services.keys());
-    const removals = previousServices.filter(uuid => !instantiatedServices
-        .map(([uuid, _]) => uuid)
-        .includes(uuid)
-    );
+    const newServices = Array.from(reconfiguration.services).flatMap(([_, instances]) => {
+        return instances.map(instance => instance.uuid);
+    });
+
+    for (const uuid of previousServices) {
+        console.log(`DEBUG: previous service: '${uuid}'`)
+    }
+
+    for (const uuid of newServices) {
+        console.log(`DEBUG: new service: '${uuid}'`)
+    }
+
+    const removals = previousServices.filter(uuid => !newServices.includes(uuid));
+
+    for (const id of removals) {
+        console.log(`DEBUG: removing service ${id}`);
+    }
 
     // remove no longer present services and kill their respective processes
     for (const uuid of removals) {
         const removed = services.get(uuid)!;
+        console.log(`${util.timestamp()}: killing process of service '${uuid}'`);
         removed.proc.kill();
         services.delete(uuid);
     }
 
-    // update all service's dependencies
-    for (const [uuid, instance] of instantiatedServices) {
-        const service = services.get(uuid)!;
-        const depends = instance.depends.map(dep => {
-            // does the dependency exist in both configurations?
-            const dependency = service.depends.find(curr => curr.uuid == dep.uuid);
-            if (dependency !== undefined) {
-                return dependency;
-            } else {
-                service.reconfigure = true;
-                return services.get(dep.uuid)!;
-            }
-        })
+    // instantiate all new services
+    const instantiatedServices = await instantiateServices(reconfiguration);
+
+    for (const [id, instance] of instantiatedServices) {
+        console.log(`DEBUG: instantiated service ${id}`);
     }
 
-    for (const service of services.values()) {
-        if (service.reconfigure) {
+    console.log(`${util.timestamp()}: initiating service reconfiguration...`);
 
-        }
-    }
+    await Promise.all(instantiatedServices.map(([_, instantiated]) => {
+        configureService(instantiated)
+    }));
 }
 
 async function instantiateServices(
@@ -120,16 +125,15 @@ async function instantiateServices(
     const promises = Array.from(selection.services).map(async ([type, instances]) => {
         // retrieve configuration file for current service type
         const file = await fs.readFile(`./services/${type}/config.json`);
-        const config = assertServiceConfig(file);
+        const config = assertServiceConfig(JSON.parse(file.toString()));
 
-        return await Promise.all(instances.map(instance => {
-            return instantiateService([type, instance], config);
-        }));
+        return Promise.all(instances.map(instance => instantiateService([type, instance], config)));
     });
 
     return (await Promise.all(promises)).flat();
 }
 
+/** Instantiates a service of the given type/description/config if it does not already exist. */
 async function instantiateService(
     [type, desc]: ServiceInstanceEntry,
     config: ServiceConfig,
@@ -138,10 +142,15 @@ async function instantiateService(
     const instantiated = desc as InstantiatedService;
 
     const service = services.get(id.uuid);
-    if (service === undefined) {
-        // start new service it does not already exist
+    if (service) {
+        // service is already instantiated
+        instantiated.topic = service.topic;
+        instantiated.proc = service.proc;
+    } else {
+        // start new service if it does not already exist
         const topic = buildTopic([type, desc]);
-        const proc = startService(desc.uuid, topic, config);
+        // TODO: use async version for 'spawn' (external dependency)
+        const proc = startService(type, desc.uuid, topic, config);
 
         // insert service without dependency configuration
         services.set(desc.uuid, {
@@ -149,48 +158,92 @@ async function instantiateService(
             room: id.room,
             depends: [],
             topic: topic,
-            proc: proc,
-            reconfigure: desc.depends.length == 0 ? false : true
+            proc: proc
         });
 
         instantiated.topic = topic;
         instantiated.proc = proc;
-    } else {
-        // otherwise return handle of existing service
-        instantiated.topic = service.topic;
-        instantiated.proc = service.proc;
     }
 
     return [id.uuid, instantiated];
 }
 
+/** Sets the dependencies of the corresponding service instance */
 async function configureService(instantiated: InstantiatedService) {
-    const service = services.get(instantiated.uuid)!;
-    if (!service.reconfigure) {
-        return;
-    }
-
-    const topics = [];
+    console.log(`configuring service ${instantiated.uuid}`);
     for (const dep of instantiated.depends) {
-        const handle = services.get(dep.uuid);
-        if (handle === undefined) {
-            throw new Error('invalid service dependency (service not defined)');
-        } else {
-            topics.push(handle.topic);
-            service.depends.push(handle);
-        }
+        console.log(`DEBUG: dependency: ${dep.uuid}`);
     }
 
-    const configTopic = `${service.topic}/${service.uuid}/config`;
-    await client.publish(
-        configTopic, JSON.stringify({ subscribe: topics }),
-        { qos: 1, retain: true }
-    );
+    const service = util.expect(services.get(instantiated.uuid), 'expected instantiated service');
+    const previous: [string, ConfiguredService][] = service.depends.map(dep => [dep.uuid, dep]);
 
-    service.reconfigure = false;
+    for (const [dep, _] of previous) {
+        console.log(`DEBUG: previous dependency: ${dep}`);
+    }
+
+    let reconfigure = false;
+    const subs: Subscription[] = [];
+
+    // determine whether any dependencies have changed (either removed or added)
+    const retained = previous
+        .filter(([uuid, service]) => {
+            if (instantiated.depends.find(dep => dep.uuid === uuid)) {
+                // if a service exists both in `instantiated` and in `previous` it is also part of
+                // of the new configuration
+                subs.push({
+                    uuid: uuid,
+                    topic: service.topic + '/' + uuid,
+                    type: 'TODO'
+                });
+                return true;
+            } else {
+                // ...otherwise, at least one dependency has changed, requiring a new config message
+                // to be sent
+                reconfigure = true;
+                return false;
+            }
+        })
+        .map(([_, service]) => service);
+
+    // determine only added dependencies
+    const additions = instantiated.depends.reduce((filtered, dep) => {
+        const result = previous.find(([uuid, _]) => dep.uuid === uuid);
+        if (!result) {
+            const instance = util.expect(
+                services.get(dep.uuid),
+                'expected instantiated service'
+            );
+
+            subs.push({
+                uuid: instance.uuid,
+                topic: instance.topic + '/' + instance.uuid,
+                type: 'TODO'
+            });
+
+            // at least one dependency was added, requiring a new config message to be sent
+            reconfigure = true;
+            filtered.push(instance);
+        }
+
+        return filtered;
+    }, [] as ConfiguredService[]);
+
+    // set the service dependencies to the sum of all retained and added services
+    service.depends = retained.concat(additions);
+
+    if (reconfigure) {
+        const configTopic = `${service.topic}/${service.uuid}/config`;
+        await client.publish(
+            configTopic, JSON.stringify({ subs: subs }),
+            { qos: 1, retain: true }
+        );
+        console.log(`${util.timestamp()}: config message sent to '${configTopic}'`);
+    }
 }
 
 function startService(
+    type: string,
     uuid: string,
     topic: string,
     config: ServiceConfig
@@ -202,8 +255,21 @@ function startService(
         throw new Error('invalid command path in config file');
     } else {
         const proc = spawn(path, args, {});
-        proc.stdout.on('data', data => console.log(`${uuid}: ${data}`));
-        proc.stderr.on('data', data => console.log(`${uuid} (err): ${data}`));
+        proc.stdout.on('data', (data: Buffer) => {
+            console.log(`\tfrom '${type}/${uuid}' (stdout):`);
+            const lines = data.toString('utf-8').split('\n');
+            for (const line of lines) {
+                console.log(`\t${line}`);
+            }
+        });
+
+        proc.stderr.on('data', (data: Buffer) => {
+            console.log(`\tfrom '${type}/${uuid}' (stderr):`);
+            const lines = data.toString('utf-8').split('\n');
+            for (const line of lines) {
+                console.log(`\t${line}`);
+            }
+        });
 
         return proc;
     }
@@ -211,11 +277,11 @@ function startService(
 
 function assertServiceConfig(obj: any): ServiceConfig {
     const isServiceConfig = (obj: any) => {
-        if (typeof obj.exec !== "string" || !Array.isArray(obj.args)) {
+        if (typeof obj.cmd.exec !== "string" || !Array.isArray(obj.cmd.args)) {
             return false;
         }
 
-        return (obj.args as string[]).every(arg => typeof arg === 'string');
+        return (obj.cmd.args as string[]).every(arg => typeof arg === 'string');
     };
 
     if (isServiceConfig(obj)) {
@@ -228,7 +294,7 @@ function assertServiceConfig(obj: any): ServiceConfig {
 /** Creates the topic for the service instance of the given service type. */
 function buildTopic([type, instance]: ServiceInstanceEntry): string {
     const base = instance.room !== null
-        ? `${APARTMENT}/room/${instance.room}`
-        : `${APARTMENT}`;
+        ? `apartment/${APARTMENT}/room/${instance.room}`
+        : `apartment/${APARTMENT}`;
     return base + '/' + type;
 }
