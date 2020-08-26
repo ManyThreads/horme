@@ -1,4 +1,4 @@
-import { ServiceDescription } from './service'
+import { ServiceDescription, ServiceType, Uuid } from './service'
 
 /********** exports ******************************************************************************/
 
@@ -8,11 +8,11 @@ export default {
 
 /** Options for specifying which changes need to be made in the database. */
 export interface ConfigUpdates {
-    del: string[];
+    del: Uuid[];
 }
 
 export interface ServiceSelection {
-    services: Map<string, ServiceDescription[]>;
+    services: Map<ServiceType, ServiceDescription[]>;
 }
 
 /********** implementation ************************************************************************/
@@ -39,18 +39,37 @@ async function queryServiceSelection(updates?: ConfigUpdates): Promise<ServiceSe
     return { services: config };
 }
 
-const bedroomSwitch1: ServiceDescription = { uuid: 'bri', room: 'bedroom', depends: [] };
-const bedroomSwitch2: ServiceDescription = { uuid: 'fra', room: 'bedroom', depends: [] };
+const bedroomSwitch1: ServiceDescription = {
+    uuid: 'bri',
+    room: 'bedroom',
+    type: 'light-switch',
+    depends: []
+};
+
+const bedroomSwitch2: ServiceDescription = {
+    uuid: 'fra',
+    room: 'bedroom',
+    type: 'light-switch',
+    depends: []
+};
+
 const bedroomLamp: ServiceDescription = {
     uuid: 'abc',
     room: 'bedroom',
+    type: 'ceiling-lamp',
     depends: [bedroomSwitch1, bedroomSwitch2]
 };
-const camera: ServiceDescription = { uuid: 'cam', room: 'bedroom', depends: [] };
+const camera: ServiceDescription = {
+    uuid: 'cam',
+    room: 'bedroom',
+    type: 'camera-motion-detect',
+    depends: []
+};
 
 const failureReasoner: ServiceDescription = {
     uuid: 'flr',
     room: null,
+    type: 'failure-reasoner',
     depends: [bedroomSwitch1, bedroomSwitch2]
 };
 

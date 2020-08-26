@@ -1,3 +1,4 @@
+import log from 'loglevel';
 import mqtt, { AsyncMqttClient } from 'async-mqtt'
 
 import { CONNECTION } from '../../src/env';
@@ -27,9 +28,10 @@ main().catch(err => util.abort(err));
 
 /** Asynchronous service entry point. */
 async function main() {
+    log.setLevel('trace'); // TODO: read log level from .env
     const [uuid, base] = process.argv.slice(2);
     const deviceTopic = base + '/' + uuid;
-    console.log(`${util.timestamp()}: light-switch service online (${deviceTopic})`);
+    log.info(`${util.timestamp()}: light-switch service online (${deviceTopic})`);
 
     device.uuid = uuid;
 
@@ -45,11 +47,11 @@ async function main() {
         await setState(client, deviceTopic, 'off');
         await setState(client, deviceTopic, 'off');
     } else if (uuid === 'bri') {
-        //await util.timeout(3000);
-        //await setState(client, deviceTopic, 'on');
-        //await util.timeout(1000);
-        //await setState(client, deviceTopic, 'off');
-        //await setState(client, deviceTopic, 'off');
+        await util.timeout(7000);
+        await setState(client, deviceTopic, 'on');
+        await util.timeout(1000);
+        await setState(client, deviceTopic, 'off');
+        await setState(client, deviceTopic, 'off');
     }
 }
 

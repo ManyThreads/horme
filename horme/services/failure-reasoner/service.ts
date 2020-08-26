@@ -1,3 +1,5 @@
+import chalk from 'chalk';
+import log from 'loglevel';
 import mqtt, { AsyncMqttClient } from 'async-mqtt'
 
 import common, { State as KnownState, Subscription } from '../common';
@@ -21,6 +23,7 @@ class Service {
     private client: AsyncMqttClient;
     private observed: Map<string, LightSwitch> = new Map();
 
+    /** Construct service instance and register MQTT listener. */
     constructor(topic: string, client: AsyncMqttClient) {
         this.topics = {
             service: topic,
@@ -49,12 +52,17 @@ class Service {
         });
     }
 
+    /** Initializes the service instance */
     async init() {
-        await this.client.subscribe(this.topics.config);
+        await this.client.subscribe(this.topics.config, { qos: 2 });
     }
 
+    /** Handles configuration messages by updating the service's MQTT subscriptions. */
     private async handleConfigMessage(msg: string) {
-        console.log(`${util.timestamp()}: config message received`);
+        log.debug(
+            `${util.timestamp()}: config message received on topic '${this.topics.config}'`
+        );
+
         const subs = common.assertConfigMessage(JSON.parse(msg)).subs;
 
         let unsubscribed = 0;
@@ -79,8 +87,8 @@ class Service {
             }
         }
 
-        console.log(
-            `${util.timestamp()}: configuration complete, ${subscribed} added, ${unsubscribed} removed`
+        log.info(
+            `${util.timestamp()}: (re-)configuration complete, ${subscribed} added, ${unsubscribed} removed`
         );
     }
 
@@ -91,10 +99,14 @@ class Service {
         if (observed.state === 'unknown' || observed.state !== deviceMsg.state) {
             observed.state = deviceMsg.state;
         } else {
-            console.log(`${util.timestamp()}: probable light-switch malfunction detected`);
+            log.warn(
+                `${util.timestamp()}: ${chalk.yellow('probable light-switch malfunction detected')}`
+            );
             const parts = topic.split('/');
             const index = parts.indexOf('room');
             const failure = parts.slice(0, index + 2).concat('failure').join('/');
+
+            log.debug(`${util.timestamp()}: sending failure message to topic '${failure}'`);
 
             await this.client.publish(
                 failure,
@@ -112,6 +124,7 @@ main().catch(err => util.abort(err));
 
 /** Asynchronous service entry point. */
 async function main() {
+    log.setLevel('trace'); // TODO: read log level from .env
     const [uuid, base] = process.argv.slice(2);
     const serviceTopic = base + '/' + uuid;
     console.log(`${util.timestamp()}: failure-reasoner service online (${serviceTopic})`);

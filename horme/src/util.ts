@@ -1,3 +1,6 @@
+import chalk from 'chalk';
+import log from 'loglevel';
+
 import { promisify } from 'util';
 
 export default {
@@ -7,15 +10,19 @@ export default {
     timestamp,
 }
 
-/** asynchronous variant of setTimeout */
+/** Asynchronous variant of setTimeout */
 async function timeout(ms: number) {
     await (promisify(setTimeout))(ms);
 }
 
-/** aborts the app after an error */
+/** Aborts the app after an error */
 function abort(err?: Error) {
     if (err !== undefined) {
-        console.error(err);
+        if (err.stack) {
+            log.error(chalk.red(err.stack));
+        } else {
+            log.error(chalk.red(err));
+        }
     }
 
     process.exit(1);

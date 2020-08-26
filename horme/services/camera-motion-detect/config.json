@@ -1,6 +1,8 @@
 {
     "cmd": {
         "exec": "node dist/services/camera-motion-detect/service.js",
-        "args": []
+        "args": [
+            "--color"
+        ]
     }
 }

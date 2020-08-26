@@ -1,3 +1,5 @@
+import chalk from 'chalk';
+import log from 'loglevel';
 import mqtt from 'async-mqtt';
 
 import { APARTMENT, CONNECTION } from './env';
@@ -25,16 +27,23 @@ const client = mqtt.connect(CONNECTION);
 
 async function setupFailureListener() {
     client.on('message', (topic, msg) => {
-        console.log(`${util.timestamp()}: failure message received on topic '${topic}'`);
-        const failure = assertFailureMessage(JSON.parse(msg.toString('utf-8')));
-        console.log(`${util.timestamp()}: removing service '${failure.uuid}'`);
-        srv.removeService(failure.uuid).catch(err => util.abort(err));
+        onFailure(topic, msg).catch(err => util.abort(err));
     });
 
     await client.subscribe([
         `apartment/${APARTMENT}/failure`,
         `apartment/${APARTMENT}/room/bedroom/failure`
     ]);
+}
+
+async function onFailure(topic: string, msg: Buffer) {
+    log.debug(`${util.timestamp()}: failure message received on topic '${topic}'`);
+    const failure = assertFailureMessage(JSON.parse(msg.toString('utf-8')));
+    log.debug(
+        `${util.timestamp()}: removal of service ${chalk.underline(failure.uuid)} requested`
+    );
+
+    await srv.removeService(failure.uuid);
 }
 
 function assertFailureMessage(obj: any): FailureMessage {
