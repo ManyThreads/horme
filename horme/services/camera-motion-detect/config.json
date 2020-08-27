@@ -1,8 +1,9 @@
 {
     "cmd": {
-        "exec": "node dist/services/camera-motion-detect/service.js",
+        "exec": "/usr/bin/motion_sensor",
         "args": [
-            "--color"
+            "tcp://134.60.64.118:1883",
+            "1883"
         ]
     }
 }

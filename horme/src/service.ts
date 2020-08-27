@@ -8,7 +8,7 @@ import mqtt from 'async-mqtt';
 import { Subscription } from '../services/common';
 
 import { default as db, ServiceSelection } from './db';
-import { APARTMENT, CONNECTION } from './env';
+import { APARTMENT, HOST } from './env';
 import util from './util';
 
 /********** exports ******************************************************************************/
@@ -65,7 +65,7 @@ type ConfiguredService = ServiceId
 /********** module state **************************************************************************/
 
 /** The MQTT client used by the service configurator to exchange messages. */
-const client = mqtt.connect(CONNECTION);
+const client = mqtt.connect(HOST, { username: 'horme', password: 'hormeadmin' });
 /** The hashmap containing all active instantiated services. */
 const services: Map<Uuid, ConfiguredService> = new Map();
 
@@ -225,7 +225,7 @@ async function configureService(instantiated: InstantiatedService) {
     service.depends = retained.concat(additions);
 
     if (reconfigure) {
-        const configTopic = `${service.topic}/${service.uuid}/config`;
+        const configTopic = `config/${service.topic}/${service.uuid}`;
         await client.publish(
             configTopic, JSON.stringify({ subs: subs }),
             { qos: 2, retain: true }
@@ -286,9 +286,9 @@ function assertServiceConfig(obj: any): ServiceConfig {
 }
 
 /** Creates the topic for the service instance of the given service type. */
-function buildTopic([type, instance]: ServiceInstanceEntry): string {
+function buildTopic([{ }, instance]: ServiceInstanceEntry): string {
     const base = instance.room !== null
-        ? `apartment/${APARTMENT}/room/${instance.room}`
-        : `apartment/${APARTMENT}`;
-    return base + '/' + type;
+        ? `${APARTMENT}/room/${instance.room}`
+        : `${APARTMENT}`;
+    return base;
 }

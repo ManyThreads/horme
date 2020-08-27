@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import log from 'loglevel';
 import mqtt from 'async-mqtt';
 
-import { APARTMENT, CONNECTION } from './env';
+import { APARTMENT, HOST, USER, PASS } from './env';
 import srv from './service';
 import util from './util';
 
@@ -21,7 +21,8 @@ type FailureMessage = {
 
 /********** module state **************************************************************************/
 
-const client = mqtt.connect(CONNECTION);
+console.log('connecting to ' + HOST);
+const client = mqtt.connect(HOST, { username: USER, password: PASS });
 
 /********** implementation ************************************************************************/
 
@@ -31,8 +32,8 @@ async function setupFailureListener() {
     });
 
     await client.subscribe([
-        `apartment/${APARTMENT}/failure`,
-        `apartment/${APARTMENT}/room/bedroom/failure`
+        `failure/${APARTMENT}`,
+        `failure/${APARTMENT}/room/bedroom/+`,
     ]);
 }
 

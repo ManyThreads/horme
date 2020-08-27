@@ -3,7 +3,7 @@ import log from 'loglevel';
 import mqtt, { AsyncMqttClient } from 'async-mqtt'
 
 import common, { Subscription, State } from '../common';
-import { CONNECTION } from '../../src/env';
+import { HOST, USER, PASS } from '../../src/env';
 import util from '../../src/util';
 
 /********** internal types ************************************************************************/
@@ -42,11 +42,12 @@ async function main() {
 
     const topics: Topics = {
         device: deviceTopic,
-        config: deviceTopic + '/config',
+        config: 'config/' + deviceTopic,
         depends: []
     };
 
-    const client = await mqtt.connectAsync(CONNECTION);
+    const client = await mqtt.connectAsync(HOST, { username: USER, password: PASS });
+
     client.on('message', (topic, msg) => {
         let promise;
         switch (topic) {
@@ -85,12 +86,12 @@ async function handleConfigMessage(client: AsyncMqttClient, msg: string, topics:
     for (const sub of subs) {
         if (!subscriptions.has(sub.uuid)) {
             subscriptions.set(sub.uuid, sub);
-            await client.subscribe(sub.topic);
+            await client.subscribe('data/' + sub.topic);
             subscribed += 1;
         }
     }
 
-    topics.depends = subs.map(sub => sub.topic);
+    topics.depends = subs.map(sub => 'data/' + sub.topic);
 
     log.info(
         `${util.timestamp()}: (re-)configuration complete, ${subscribed} added, ${unsubscribed} removed`

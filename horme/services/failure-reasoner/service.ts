@@ -3,8 +3,25 @@ import log from 'loglevel';
 import mqtt, { AsyncMqttClient } from 'async-mqtt'
 
 import common, { State as KnownState, Subscription } from '../common';
-import { CONNECTION } from '../../src/env';
+import { HOST, USER, PASS } from '../../src/env';
 import util from '../../src/util';
+
+/********** implementation ************************************************************************/
+
+main().catch(err => util.abort(err));
+
+/** Asynchronous service entry point. */
+async function main() {
+    log.setLevel('trace'); // TODO: read log level from .env
+    const [uuid, base] = process.argv.slice(2);
+    const serviceTopic = base + '/' + uuid;
+    console.log(`${util.timestamp()}: failure-reasoner service online (${serviceTopic})`);
+
+    const client = await mqtt.connectAsync(HOST, { username: USER, password: PASS });
+
+    const service = new Service(serviceTopic, client);
+    await service.init();
+}
 
 /********** internal types ************************************************************************/
 
@@ -27,8 +44,9 @@ class Service {
     constructor(topic: string, client: AsyncMqttClient) {
         this.topics = {
             service: topic,
-            config: topic + '/config',
+            config: 'config/' + topic,
         };
+
         this.client = client;
 
         this.client.on('message', (topic, msg) => {
@@ -82,7 +100,7 @@ class Service {
                     state: 'unknown',
                 });
 
-                await this.client.subscribe(sub.topic);
+                await this.client.subscribe('data/' + sub.topic);
                 subscribed += 1;
             }
         }
@@ -102,10 +120,10 @@ class Service {
             log.warn(
                 `${util.timestamp()}: ${chalk.yellow('probable light-switch malfunction detected')}`
             );
-            const parts = topic.split('/');
-            const index = parts.indexOf('room');
-            const failure = parts.slice(0, index + 2).concat('failure').join('/');
 
+            const parts = topic.split('/');
+            parts.shift();
+            const failure = ['failure'].concat(parts).join('/');
             log.debug(`${util.timestamp()}: sending failure message to topic '${failure}'`);
 
             await this.client.publish(
@@ -115,21 +133,4 @@ class Service {
             );
         }
     }
-}
-
-
-/********** implementation ************************************************************************/
-
-main().catch(err => util.abort(err));
-
-/** Asynchronous service entry point. */
-async function main() {
-    log.setLevel('trace'); // TODO: read log level from .env
-    const [uuid, base] = process.argv.slice(2);
-    const serviceTopic = base + '/' + uuid;
-    console.log(`${util.timestamp()}: failure-reasoner service online (${serviceTopic})`);
-
-    const client = await mqtt.connectAsync(CONNECTION);
-    const service = new Service(serviceTopic, client);
-    await service.init();
 }

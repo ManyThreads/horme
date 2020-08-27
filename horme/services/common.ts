@@ -66,7 +66,7 @@ function assertState(obj: any): State {
 function assertDeviceMessage(obj: any): DeviceMessage {
     if (
         typeof obj.uuid === 'string'
-        && obj.service === 'light-switch'
+        && obj.type === 'light-switch'
         && (obj.state === 'on' || obj.state === 'off')
     ) {
         return obj as DeviceMessage;
