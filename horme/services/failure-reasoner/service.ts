@@ -3,8 +3,10 @@ import log from 'loglevel';
 import mqtt, { AsyncMqttClient } from 'async-mqtt'
 
 import common, { State as KnownState, Subscription } from '../common';
-import { HOST, USER, PASS } from '../../src/env';
+import getEnv from '../../src/env';
 import util from '../../src/util';
+
+const env = getEnv.from_file()
 
 /********** implementation ************************************************************************/
 
@@ -13,13 +15,12 @@ main().catch(err => util.abort(err));
 /** Asynchronous service entry point. */
 async function main() {
     log.setLevel('trace'); // TODO: read log level from .env
-    const [uuid, base] = process.argv.slice(2);
-    const serviceTopic = base + '/' + uuid;
-    console.log(`${util.timestamp()}: failure-reasoner service online (${serviceTopic})`);
+    const [uuid, topic] = process.argv.slice(2);
+    console.log(`${util.timestamp()}: failure-reasoner service online (${topic})`);
 
-    const client = await mqtt.connectAsync(HOST, { username: USER, password: PASS });
+    const client = await mqtt.connectAsync(env.MQTT_HOST, env.MQTT_AUTH);
 
-    const service = new Service(serviceTopic, client);
+    const service = new Service(topic, client);
     await service.init();
 }
 
@@ -42,12 +43,8 @@ class Service {
 
     /** Construct service instance and register MQTT listener. */
     constructor(topic: string, client: AsyncMqttClient) {
-        this.topics = {
-            service: topic,
-            config: 'config/' + topic,
-        };
-
-        this.client = client;
+        this.topics = { service: topic, config: 'config/' + topic }
+        this.client = client
 
         this.client.on('message', (topic, msg) => {
             let promise;
@@ -56,14 +53,13 @@ class Service {
                     promise = this.handleConfigMessage(msg.toString());
                     break;
                 default:
-                    const uuid = topic.split('/').pop()!;
-                    const observed = this.observed.get(uuid);
+                    const device = JSON.parse(msg.toString()) as { uuid: string, type: string }
+                    const observed = this.observed.get(device.uuid);
                     if (observed) {
                         promise = this.handleDeviceMessage(topic, msg.toString(), observed);
                     } else {
-                        throw new Error('TODO');
+                        throw new Error('message on un-subscribed topic received');
                     }
-
             }
 
             promise.catch(err => util.abort(err));
@@ -123,7 +119,7 @@ class Service {
 
             const parts = topic.split('/');
             parts.shift();
-            const failure = ['failure'].concat(parts).join('/');
+            const failure = ['fail'].concat(parts).join('/');
             log.debug(`${util.timestamp()}: sending failure message to topic '${failure}'`);
 
             await this.client.publish(

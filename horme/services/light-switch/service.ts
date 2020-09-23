@@ -1,7 +1,7 @@
 import log from 'loglevel';
 import mqtt, { AsyncMqttClient } from 'async-mqtt'
 
-import { HOST, USER, PASS } from '../../src/env';
+import getEnv from '../../src/env';
 import util from '../../src/util';
 
 /********** internal types ************************************************************************/
@@ -17,6 +17,7 @@ type Device = {
 
 /********** module state **************************************************************************/
 
+const env = getEnv.from_file()
 const device: Device = {
     uuid: null,
     type: 'light-switch',
@@ -31,13 +32,13 @@ main().catch(err => util.abort(err));
 /** Asynchronous service entry point. */
 async function main() {
     log.setLevel('trace'); // TODO: read log level from .env
-    const [uuid, base] = process.argv.slice(2);
-    const dataTopic = 'data/' + base + '/' + uuid;
-    log.info(`${util.timestamp()}: light-switch service online (${dataTopic})`);
+    const [uuid, topic] = process.argv.slice(2);
+    const dataTopic = 'data/' + topic
+    log.info(`${util.timestamp()}: light-switch service online (${topic})`);
 
     device.uuid = uuid;
 
-    const client = await mqtt.connectAsync(HOST, { username: USER, password: PASS });
+    const client = await mqtt.connectAsync(env.MQTT_HOST, env.MQTT_AUTH);
     client.on('message', ({ }, { }) => {
         util.abort(new Error('light-switch service not configured to receive messages'));
     });
