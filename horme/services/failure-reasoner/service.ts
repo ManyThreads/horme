@@ -1,132 +1,131 @@
-import chalk from 'chalk';
-import log from 'loglevel';
+import chalk from 'chalk'
+import loglevel from 'loglevel'
 import mqtt, { AsyncMqttClient } from 'async-mqtt'
+import { Static } from 'runtypes'
 
-import common, { State as KnownState, Subscription } from '../common';
-import getEnv from '../../src/env';
-import util from '../../src/util';
+import { ConfigMessage, DeviceMessage, Subscription, Value } from '../common'
+import getEnv from '../../src/env'
+import util from '../../src/util'
+
+/********** service state *************************************************************************/
 
 const env = getEnv.from_file()
+const logger = util.logger
 
 /********** implementation ************************************************************************/
 
-main().catch(err => util.abort(err));
+main().catch(err => util.abort(err))
 
 /** Asynchronous service entry point. */
 async function main() {
-    log.setLevel('trace'); // TODO: read log level from .env
-    const [uuid, topic] = process.argv.slice(2);
-    console.log(`${util.timestamp()}: failure-reasoner service online (${topic})`);
+    loglevel.setLevel(env.LOG_LEVEL)
+    const [{ }, topic, host] = process.argv.slice(2)
+    logger.info(`failure-reasoner service online (${topic})`)
 
-    const client = await mqtt.connectAsync(env.MQTT_HOST, env.MQTT_AUTH);
+    const client = await mqtt.connectAsync(host, env.MQTT_AUTH)
 
-    const service = new Service(topic, client);
-    await service.init();
+    const service = new Service(topic, client)
+    await service.init()
 }
 
 /********** internal types ************************************************************************/
 
-type State = KnownState | 'unknown';
+type State = Static<typeof Value> | 'unknown'
+type Subscription = Static<typeof Subscription>
 
 type LightSwitch = {
-    sub: Subscription;
-    state: State;
-};
+    sub: Subscription
+    state: State
+}
 
 class Service {
     private topics: {
-        service: string;
-        config: string;
-    };
-    private client: AsyncMqttClient;
-    private observed: Map<string, LightSwitch> = new Map();
+        service: string
+        config: string
+    }
+    private client: AsyncMqttClient
+    private observed: Map<string, LightSwitch> = new Map()
 
     /** Construct service instance and register MQTT listener. */
     constructor(topic: string, client: AsyncMqttClient) {
-        this.topics = { service: topic, config: 'config/' + topic }
+        this.topics = { service: topic, config: 'conf/' + topic }
         this.client = client
 
         this.client.on('message', (topic, msg) => {
-            let promise;
+            let promise
             switch (topic) {
                 case this.topics.config:
-                    promise = this.handleConfigMessage(msg.toString());
-                    break;
+                    promise = this.handleConfigMessage(msg.toString())
+                    break
                 default:
                     const device = JSON.parse(msg.toString()) as { uuid: string, type: string }
-                    const observed = this.observed.get(device.uuid);
+                    const observed = this.observed.get(device.uuid)
                     if (observed) {
-                        promise = this.handleDeviceMessage(topic, msg.toString(), observed);
+                        promise = this.handleDeviceMessage(topic, msg.toString(), observed)
                     } else {
-                        throw new Error('message on un-subscribed topic received');
+                        throw new Error('message on un-subscribed topic received')
                     }
             }
 
-            promise.catch(err => util.abort(err));
-        });
+            promise.catch(err => util.abort(err))
+        })
     }
 
     /** Initializes the service instance */
     async init() {
-        await this.client.subscribe(this.topics.config, { qos: 2 });
+        await this.client.subscribe(this.topics.config, { qos: 2 })
     }
 
     /** Handles configuration messages by updating the service's MQTT subscriptions. */
     private async handleConfigMessage(msg: string) {
-        log.debug(
-            `${util.timestamp()}: config message received on topic '${this.topics.config}'`
-        );
+        logger.debug(`config message received on topic '${this.topics.config}'`)
 
-        const subs = common.assertConfigMessage(JSON.parse(msg)).subs;
+        const subs = ConfigMessage.check(JSON.parse(msg)).subs
 
-        let unsubscribed = 0;
+        let unsubscribed = 0
         for (const [uuid, observed] of this.observed) {
             if (!subs.find(sub => sub.uuid === uuid)) {
-                this.observed.delete(uuid);
-                await this.client.unsubscribe(observed.sub.topic);
-                unsubscribed += 1;
+                this.observed.delete(uuid)
+                await this.client.unsubscribe(observed.sub.topic)
+                unsubscribed += 1
             }
         }
 
-        let subscribed = 0;
+        let subscribed = 0
         for (const sub of subs) {
             if (!this.observed.has(sub.uuid)) {
                 this.observed.set(sub.uuid, {
                     sub: sub,
                     state: 'unknown',
-                });
+                })
 
-                await this.client.subscribe('data/' + sub.topic);
-                subscribed += 1;
+                await this.client.subscribe('data/' + sub.topic)
+                subscribed += 1
             }
         }
 
-        log.info(
-            `${util.timestamp()}: (re-)configuration complete, ${subscribed} added, ${unsubscribed} removed`
-        );
+        logger.info(`(re-)configuration complete, ${subscribed} added, ${unsubscribed} removed`)
     }
 
     private async handleDeviceMessage(topic: string, msg: string, observed: LightSwitch) {
-        console.log(`${util.timestamp()}: device message received on topic '${topic}'`);
-        const deviceMsg = common.assertDeviceMessage(JSON.parse(msg));
+        console.log(`${util.timestamp()}: device message received on topic '${topic}'`)
+        const deviceMsg = DeviceMessage.check(JSON.parse(msg))
 
-        if (observed.state === 'unknown' || observed.state !== deviceMsg.state) {
-            observed.state = deviceMsg.state;
+        if (observed.state === 'unknown' || observed.state !== deviceMsg.value) {
+            observed.state = deviceMsg.value
         } else {
-            log.warn(
-                `${util.timestamp()}: ${chalk.yellow('probable light-switch malfunction detected')}`
-            );
+            logger.warn('probable light-switch malfunction detected')
 
-            const parts = topic.split('/');
-            parts.shift();
-            const failure = ['fail'].concat(parts).join('/');
-            log.debug(`${util.timestamp()}: sending failure message to topic '${failure}'`);
+            const parts = topic.split('/')
+            parts.shift()
+            const failure = ['fail'].concat(parts).join('/')
+            logger.debug(`sending failure message to topic '${failure}'`)
 
             await this.client.publish(
                 failure,
                 JSON.stringify({ uuid: observed.sub.uuid, reason: 'unknown' }),
                 { qos: 2 }
-            );
+            )
         }
     }
 }

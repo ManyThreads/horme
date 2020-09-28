@@ -1,9 +1,6 @@
 {
     "cmd": {
         "exec": "/usr/bin/motion_sensor",
-        "args": [
-            "tcp://134.60.64.118:1883",
-            "1883"
-        ]
+        "args": []
     }
 }

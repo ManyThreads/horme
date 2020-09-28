@@ -2,8 +2,9 @@ import { spawn, ChildProcessWithoutNullStreams } from 'child_process'
 import fs from 'fs/promises'
 
 import chalk from 'chalk'
-import log from 'loglevel'
+import loglevel from 'loglevel'
 import mqtt from 'async-mqtt'
+import { Array as ArrayType, Static, String, Record } from 'runtypes'
 
 import { Subscription } from '../services/common'
 
@@ -44,12 +45,14 @@ export interface SelectedService extends ServiceDescription {
 /********** internal types ************************************************************************/
 
 /** The configuration for starting a service instance of a type. */
-type ServiceConfig = {
-    cmd: {
-        exec: string
-        args: string[]
-    }
-}
+const ServiceConfig = Record({
+    cmd: Record({
+        exec: String,
+        args: ArrayType(String)
+    })
+})
+
+type ServiceConfig = Static<typeof ServiceConfig>
 
 /** The handle to an actively running service instance. */
 interface Service extends ServiceDescription {
@@ -58,9 +61,12 @@ interface Service extends ServiceDescription {
     depends: Service[]
 }
 
+type Subscription = Static<typeof Subscription>
+
 /********** module state **************************************************************************/
 
 const env = getEnv.from_file()
+const logger = util.logger
 /** The MQTT client used by the service configurator to exchange messages. */
 const client = mqtt.connect(env.MQTT_HOST, env.MQTT_AUTH)
 /** The hashmap containing all active instantiated services. */
@@ -95,9 +101,7 @@ async function removeService(uuid: string) {
     // remove all services no longer present in the new configuration and kill their respective
     // processes
     for (const service of removals) {
-        log.warn(
-            `${util.timestamp()}: ${chalk.yellow('killing process of service ' + chalk.underline(service.uuid))}`
-        )
+        logger.warn('killing process of service ' + chalk.underline(service.uuid))
 
         service.proc.kill()
         services.delete(service.uuid)
@@ -107,7 +111,7 @@ async function removeService(uuid: string) {
     const instantiatedServices = await instantiateServices(reconfiguration)
 
     // configure all newly instantiated services and re-configure all changed services
-    log.info(`${util.timestamp()}: initiating service reconfiguration...`)
+    logger.info('initiating service reconfiguration...')
     await Promise.all(instantiatedServices.map(args => configureService(...args)))
 }
 
@@ -117,7 +121,7 @@ async function instantiateServices(
 ): Promise<[Service, Uuid[]][]> {
     const promises = await Promise.all(selection.map(async ([type, selected]) => {
         const file = await fs.readFile(`./services/${type}/config.json`)
-        const config = assertServiceConfig(JSON.parse(file.toString()))
+        const config = ServiceConfig.check(JSON.parse(file.toString()))
 
         return await Promise.all(Array.from(selected.map(sel => instantiateService(sel, config))))
     }))
@@ -181,20 +185,21 @@ async function configureService(service: Service, depends: Uuid[]) {
     service.depends = retained.concat(additions)
 
     if (reconfigure) {
-        const topic = `config/${service.topic}`
+        const topic = `conf/${service.topic}`
         await client.publish(topic, JSON.stringify({ subs: subs }), { qos: 2, retain: true })
-        log.debug(`${util.timestamp()}: config message sent to '${topic}'`)
+        logger.debug(`config message sent to '${topic}'`)
     }
 }
 
-// TODO: async-ify
 function startService(
     desc: ServiceDescription,
     config: ServiceConfig,
     topic: string,
 ): ServiceProcess {
     const exec = config.cmd.exec.split(' ')
-    const [path, args] = [exec.shift(), exec.concat([desc.uuid, topic]).concat(config.cmd.args)]
+
+    const path = exec.shift()
+    const args = exec.concat([desc.uuid, topic, env.MQTT_HOST]).concat(config.cmd.args)
 
     if (path === undefined) {
         throw new Error('invalid command path in config file')
@@ -217,23 +222,6 @@ function startService(
         })
 
         return proc
-    }
-}
-
-/** Validates that `obj` is of type `ServiceConfig` or throws an error. */
-function assertServiceConfig(obj: any): ServiceConfig {
-    const isServiceConfig = (obj: any) => {
-        if (typeof obj.cmd.exec !== "string" || !Array.isArray(obj.cmd.args)) {
-            return false
-        }
-
-        return (obj.cmd.args as string[]).every(arg => typeof arg === 'string')
-    }
-
-    if (isServiceConfig(obj)) {
-        return obj as ServiceConfig
-    } else {
-        throw new Error("invalid format of service config")
     }
 }
 

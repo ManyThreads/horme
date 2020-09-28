@@ -1,11 +1,21 @@
 import chalk from 'chalk';
-import log from 'loglevel';
+import loglevel from 'loglevel';
 
 import { promisify } from 'util';
+
+const logger = {
+    trace: (msg: string) => loglevel.trace(`${timestamp()}: ${msg}`),
+    debug: (msg: string) => loglevel.debug(`${timestamp()}: ${msg}`),
+    warn: (msg: string) => loglevel.warn(chalk.yellow(`${timestamp()}: ${msg}`)),
+    error: (msg: string) => loglevel.error(chalk.red(`${timestamp()}: ${msg}`)),
+    info: (msg: string) => loglevel.info(`${timestamp()}: ${msg}`),
+}
 
 export default {
     abort,
     expect,
+    logger,
+    msg,
     timeout,
     timestamp,
 }
@@ -19,13 +29,17 @@ async function timeout(ms: number) {
 function abort(err?: Error) {
     if (err !== undefined) {
         if (err.stack) {
-            log.error(chalk.red(err.stack));
+            logger.error(chalk.red(err.stack));
         } else {
-            log.error(chalk.red(err));
+            logger.error(chalk.red(err));
         }
     }
 
     process.exit(1);
+}
+
+function msg(str: string): string {
+    return `${timestamp()}: ${str}`
 }
 
 function expect<T>(maybe: T | undefined, err: string): T {

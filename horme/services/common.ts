@@ -1,10 +1,26 @@
-export default {
-    assertConfigMessage,
-    assertDeviceMessage,
-    assertState,
-    assertSubscription,
-    isSubscription,
-}
+import { Array, Literal, String, Record, Union } from 'runtypes'
+
+export const Value = Union(Literal('on'), Literal('off'))
+
+export const DeviceMessage = Record({
+    uuid: String,
+    type: String,
+    value: Value,
+})
+
+export const Subscription = Record({
+    uuid: String,
+    type: String,
+    topic: String,
+})
+
+export const ConfigMessage = Record({
+    subs: Array(Subscription)
+})
+
+/*const assertConfigMessage = ConfigMessage.check
+
+ConfigMessage.validate
 
 export type State = 'on' | 'off';
 
@@ -73,4 +89,4 @@ function assertDeviceMessage(obj: any): DeviceMessage {
     } else {
         throw new Error(`invalid format of device message: ${JSON.stringify(obj)}`);
     }
-}
+}*/

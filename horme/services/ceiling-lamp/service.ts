@@ -1,16 +1,20 @@
-import chalk from 'chalk'
-import log from 'loglevel'
 import mqtt, { AsyncMqttClient } from 'async-mqtt'
+import chalk from 'chalk'
+import loglevel from 'loglevel'
+import { Static } from 'runtypes';
 
-import common, { Subscription, State } from '../common'
+import { ConfigMessage, DeviceMessage, Subscription, Value } from '../common'
 import getEnv from '../../src/env'
 import util from '../../src/util'
 
 /********** internal types ************************************************************************/
 
+type Subscription = Static<typeof Subscription>
+type Value = Static<typeof Value>
+
 type Device = {
     uuid: string | null
-    state: State
+    value: Value
 }
 
 type Topics = {
@@ -22,11 +26,12 @@ type Topics = {
 /********** module state **************************************************************************/
 
 const env = getEnv.from_file()
+const logger = util.logger
 const subscriptions: Map<string, Subscription> = new Map()
 
 const device: Device = {
     uuid: null,
-    state: 'off',
+    value: 'off',
 }
 
 /********** implementation ************************************************************************/
@@ -34,16 +39,16 @@ const device: Device = {
 main().catch(err => util.abort(err))
 
 async function main() {
-    log.setLevel('trace')  // TODO: read log level from .env
+    loglevel.setLevel(env.LOG_LEVEL)
     const [uuid, topic] = process.argv.slice(2)
     const dataTopic = 'data/' + topic
-    log.info(`${util.timestamp()}: ceiling-lamp service online (${topic})`)
+    logger.info(`ceiling-lamp service online (${topic})`)
 
     device.uuid = uuid
 
     const topics: Topics = {
         data: dataTopic,
-        config: 'config/' + topic,
+        config: 'conf/' + topic,
         depends: []
     }
 
@@ -70,8 +75,8 @@ async function main() {
 }
 
 async function handleConfigMessage(client: AsyncMqttClient, msg: string, topics: Topics) {
-    log.debug(`${util.timestamp()}: config message received on topic '${topics.config}'`)
-    const subs = common.assertConfigMessage(JSON.parse(msg)).subs
+    logger.debug(`config message received on topic '${topics.config}'`)
+    const subs = ConfigMessage.check(JSON.parse(msg)).subs
 
     let unsubscribed = 0
     for (const [uuid, sub] of subscriptions) {
@@ -92,15 +97,10 @@ async function handleConfigMessage(client: AsyncMqttClient, msg: string, topics:
     }
 
     topics.depends = subs.map(sub => 'data/' + sub.topic)
-
-    log.info(
-        `${util.timestamp()}: (re-)configuration complete, ${subscribed} added, ${unsubscribed} removed`
-    )
+    logger.info(`(re-)configuration complete, ${subscribed} added, ${unsubscribed} removed`)
 
     if (topics.depends.length == 0) {
-        log.warn(
-            `${util.timestamp()}: ${chalk.yellow('no light-switches configured, can not function properly')}`
-        )
+        logger.warn('no light-switches configured, can not function properly')
     }
 }
 
@@ -110,16 +110,14 @@ async function handleDeviceMessage(
     msg: string,
     topics: Topics
 ) {
-    log.debug(`${util.timestamp()}: device message received on topic '${topic}'`)
-    const dev = common.assertDeviceMessage(JSON.parse(msg))
+    logger.debug(`device message received on topic '${topic}'`)
+    const deviceMessage = DeviceMessage.check(JSON.parse(msg))
 
-    if (device.state !== dev.state) {
-        device.state = dev.state
+    if (device.value !== deviceMessage.value) {
+        device.value = deviceMessage.value
         await client.publish(topics.data, JSON.stringify(device), { retain: true })
-        log.debug(`${util.timestamp()}: retained state set to '${device.state}'`)
+        logger.debug(`retained state set to '${device.value}'`)
     } else {
-        log.warn(
-            `${util.timestamp()}: ${chalk.yellow('invalid state received (probable malfunction)')}`
-        )
+        logger.warn('invalid state received (probable malfunction)')
     }
 }

@@ -1,6 +1,6 @@
 import chalk from 'chalk';
-import log from 'loglevel';
 import mqtt from 'async-mqtt';
+import { Static, String, Record } from 'runtypes'
 
 import getEnv from './env';
 import srv from './service';
@@ -14,14 +14,17 @@ export default {
 
 /********** internal types ************************************************************************/
 
-type FailureMessage = {
-    uuid: string
-    reason: string
-}
+const FailureMessage = Record({
+    uuid: String,
+    reason: String
+})
+
+type FailureMessage = Static<typeof FailureMessage>
 
 /********** module state **************************************************************************/
 
 const env = getEnv.from_file()
+const logger = util.logger
 
 /********** implementation ************************************************************************/
 
@@ -37,24 +40,14 @@ async function setupFailureListener() {
     await client.subscribe([
         `fail/${env.APARTMENT}/global`,
         `fail/${env.APARTMENT}/bedroom/+`,
-    ]);
+    ])
 }
 
 /** Initiates failure handling & reconfiguration */
 async function onFailure(topic: string, msg: Buffer) {
-    log.debug(`${util.timestamp()}: failure message received on topic '${topic}'`)
-    const failure = JSON.parse(msg.toString('utf-8'))
-    assertFailureMessage(failure)
+    logger.debug(`failure message received on topic '${topic}'`)
+    const failure = FailureMessage.check(JSON.parse(msg.toString('utf-8')))
+    logger.debug(`removal of service ${chalk.underline(failure.uuid)} requested`)
 
-    log.debug(
-        `${util.timestamp()}: removal of service ${chalk.underline(failure.uuid)} requested`
-    );
-
-    await srv.removeService(failure.uuid);
-}
-
-function assertFailureMessage(obj: any): asserts obj is FailureMessage {
-    if (typeof obj.uuid !== 'string' && typeof obj.reason !== 'string') {
-        throw new Error("invalid format of failure message")
-    }
+    await srv.removeService(failure.uuid)
 }
