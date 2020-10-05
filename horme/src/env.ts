@@ -15,7 +15,7 @@ let env: Env
 // Env
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
-/** Externally configured application environment */
+/** externally configured application environment */
 export type Env = {
     APARTMENT: string
     MQTT_HOST: string

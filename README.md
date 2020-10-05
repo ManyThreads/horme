@@ -19,7 +19,8 @@ $ pacman -S docker docker-compose
 
 **Debian based:**
 
-See documentation for [Debian](https://docs.docker.com/engine/install/debian/#installation-methods) or [Ubuntu](https://docs.docker.com/engine/install/ubuntu/).
+See documentation for [Debian](https://docs.docker.com/engine/install/debian/#installation-methods)
+or [Ubuntu](https://docs.docker.com/engine/install/ubuntu/).
 
 ## 1.2 Post-installation
 
@@ -29,7 +30,8 @@ See documentation for Linux [post-installation steps](https://docs.docker.com/en
 
 ## 2.1 Starting & Building Containers
 
-First time container instantiation takes some time for downloading and configuring the images.
+First time container instantiation takes some time for downloading, building and
+configuring the images.
 
 ```bash
 $ docker-compose run --rm reconf
@@ -37,8 +39,10 @@ $ docker-compose run --rm reconf
 
 ## 2.2 Inside `reconf` Container
 
-The above command starts a `bash` instance within the container inside the mounted `app/` directory.
-The following command installs the required `npm` packages and is only required once:
+The above command starts a `bash` instance within the container inside the
+mounted `horme/` directory.
+The following command installs the required `npm` packages and is only required
+once:
 
 ```bash
 $ npm install
@@ -47,7 +51,16 @@ $ npm install
 Afterwards, type the following command to execute the example application once:
 
 ```bash
-$ npm start
+$ npm run app
+```
+
+### 2.2.1 Rebuilding `reconf` Container
+
+After making changes to the `reconf` container's [`Dockerfile`](.Dockerfile) it
+will likely be necessary to explicitly rebuild the container image:
+
+```bash
+$ docker-compose build reconf
 ```
 
 ## 2.3 Stopping Auxiliary Containers
@@ -62,33 +75,184 @@ $ docker-compose down
 $ docker system prune -a --volumes
 ```
 
-## 3. Relationship Modeling
+# 3. Service Contracts (Compliant Service Specification)
 
-### 4.1 Device Related
+The HorME configuration & re-configuration system manages the dynamic
+instantiation and communication between between compliant but otherwise
+independent *service* applications.
+Services are specified by **configuration files**, which must contain the
+relevant information for instantiating the service as well as their
+dependencies.
+All managed services are required to handle their own message publication and
+subscription via the MQTT protocol.
+Services are instantiated by the configuration system and are passed a set of
+required service parameters as **program arguments**.
+If a service is defined with dependencies, the configuration system is obliged
+to send the service an initial **configuration message**, containing a list of
+MQTT topics, to which the service must subscribe.
+All topics are generated, defined and communicated by the configuration system.
 
-- apartment *contains* room (1:n)
-- room *contains* device (1:n)
-- device *is of* type (1:1)
-- type *provides* **service** (1:n)
+## 3.1 Configuration Files
 
-#### Open Questions: Inter-service dependencies?
+The service configuration file format is as of yet not finally pinned down, but
+currently includes the following properties:
 
-### 4.2 Inhabitant related
+```json
+{
+    "cmd": {
+        "exec": "[command or path to executable (string)]",
+        "args": [
+            "[arguments (list of strings, maybe empty)]"
+        ]
+    }
+}
+```
 
-- person *inhabits* apartment (1:1)
-- person *has* ailment (1:n)
-- ailment *requires* **service** (1:n)
+### 3.1.1 Example
 
-## 4. MQTT Topic Modeling
+```json
+{
+    "cmd": {
+        "exec": "node dist/services/ceiling-lamp/service.js",
+        "args": ["--color"]
+    }
+}
+```
 
-**General Pattern:**
+## 3.2 Program Arguments
 
-`{apt}/{room}/{device-type}/{device-uuid}`
+Every compliant service must accept and handle an *ordered set* of program
+arguments, which are passed down to it by the configuration system.
 
-**Sub-Paths**:
+- 1. service UUID: an unique **string** assigned to the service instance
+- 2. service topic: the unique topic (path) **string** assigned to the service
+- 3. MQTT host: the MQTT host address
+- 4. MQTT authentication (optional): **either** username and password, only
+     username or no argument at all (all **strings**)
 
-e.g. `apt-421/living-room/television/{device-uuid}/[remote-control|switch|..]`
+### 3.2.1 Service Topic
+
+The configuration system hands only the "raw" topic string to each service, any
+topic prefixes must be appended by the service itself (see
+[Section 3.4](#34-mqtt-topic-structure)).
+
+### 3.2.2 MQTT Host Argument
+
+The MQTT host argument is passed in the following format:
+
+```
+{protocol}://{hostname/ip-address}:{port}
+```
+
+#### 3.2.2.1 Example
+
+`tcp://mosquitto:1883`
+
+As of now, only the TCP protocol is used.
+
+## 3.3 Configuration Messages
+
+There are two scenarios, in which the configuration system will send a
+configuration message to a service, and only services specifying dependent
+services in their configuration need bother with configuration messages at all.
+
+- 1. initial configuration (notifying the service of the topics of its
+     dependencies)
+- 2. reconfiguration (notifying the service of added and removed dependencies)
+
+The format of configuration messages is as follows:
+
+```json
+{
+    "add": ["[list of topics (strings)]"],
+    "del": ["[list of topics (strings)]"]
+}
+```
+
+Either list may be empty, but the property must still be present in the message.
+Initial configuration messages must never contain any removals (empty list in
+`del` property).
+All communicated topics are "raw", i.e., without any prefixes (see
+[Section 3.4](#34-mqtt-topic-structure)).
+All configuration messages must be sent as `retain` messages, meaning they will
+be stored by the MQTT broker.
+
+## 3.4 MQTT Topic Structure
+
+All topics generated by the configuration system must adhere to the following
+format:
+
+```
+{$apartment-identifier}/{"global"|$room-identifier}/{$service-type}{$service-uuid}
+```
+
+Note, that the `service-type` and `service-uuid` are concatenated in the final
+part of the topic.
+In order to avoid topic string parsing as much as possible, services are
+encouraged to send their type and uuid in every message they publish.
+Services, that are not associated with a specific room have the special
+`"global"` string in their topic instead of a `room-identifier`.
+
+### 3.4.1 Topic Prefixes
+
+Topics may be prefixed with one of four possible prefix strings:
+
+- 1. `data`
+- 2. `conf`
+- 3. `fail`
+- 4. `inf`
+
+A fifth `cmd` prefix is reserved for potential use at a later stage
+
+Services that publish data must publish it to their assigned topic prefixed with
+`data` and services with dependencies must listen to their assigned topic
+prefixed with `conf` for configuration messages.
+The `fail` prefix is exclusively reserved for failure notification by the
+configuration system and the `inf` prefix is reserved for event and state
+inference communication.
+
+### 3.4.2 Examples
+
+A service of type `light-switch` with the UUID `550e8400-e29b-11d4-a716-446655440000`
+must **publish** all of its registered events to the following topic and any
+dependent services must likewise **subscribe** to it:
+
+`data/apt-421/bedroom/light-switch550e8400-e29b-11d4-a716-446655440000`
+
+A service of type `ceiling-lamp` with the UUID `79cfa266-06fb-11eb-adc1-0242ac120002`
+must **subscribe** to this topic:
+
+`conf/apt-421/bedroom/ceiling-lamp79cfa266-06fb-11eb-adc1-0242ac120002`
+
+# 4. Current Scenario
+
+(bound to change)
+
+As of now, the following service types are modelled:
+
+- 1. `light-switch`
+- 2. `camera-motion-detect`
+- 3. `failure-detect`
+- 4. `ceiling-lamp`
+
+Both `light-switch` and `camera-motion-detect` services can be used to infer
+*presence* in their respective room.
+`failure-detect` services are exclusively used to detect failure of
+`light-switch` service instances (for now).
+Both `failure-detect` and `ceiling-lamp` depend on any number of `light-switch`
+services (two as of now).
+
+All services publish their state in messages of the following format:
+
+```json
+{
+    "uuid": "[string]",
+    "type": "[string]",
+    "value": "[on|off]", // for now there are only binary sensor services
+    "timestamp": "[unsigned long integer]" // UNIX time in seconds
+}
+```
 
 ## 5. Glossary
 
-**device**: A physical sensor or actor installed in an apartment that is at least able to publish MQTT messages
+TODO

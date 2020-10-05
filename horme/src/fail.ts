@@ -28,7 +28,7 @@ const logger = util.logger
 
 /********** implementation ************************************************************************/
 
-/** Initializes MQTT failure listener client */
+/** initializes the MQTT failure listener client and registers callback */
 async function setupFailureListener() {
     // connect MQTT client
     const client = await mqtt.connectAsync(env.MQTT_HOST, env.MQTT_AUTH)
@@ -43,7 +43,7 @@ async function setupFailureListener() {
     ])
 }
 
-/** Initiates failure handling & reconfiguration */
+/** initiates MQTT failure handling & reconfiguration */
 async function onFailure(topic: string, msg: Buffer) {
     logger.debug(`failure message received on topic '${topic}'`)
     const failure = FailureMessage.check(JSON.parse(msg.toString('utf-8')))

@@ -3,11 +3,12 @@ import loglevel from 'loglevel';
 
 import { promisify } from 'util';
 
+/** logging function wrappers for `loglevel` */
 const logger = {
     trace: (msg: string) => loglevel.trace(`${timestamp()}: ${msg}`),
     debug: (msg: string) => loglevel.debug(`${timestamp()}: ${msg}`),
-    warn: (msg: string) => loglevel.warn(chalk.yellow(`${timestamp()}: ${msg}`)),
-    error: (msg: string) => loglevel.error(chalk.red(`${timestamp()}: ${msg}`)),
+    warn: (msg: string) => loglevel.warn(`${timestamp()}: ${chalk.yellow(msg)}`),
+    error: (msg: string) => loglevel.error(`${timestamp()}: ${chalk.red(msg)}`),
     info: (msg: string) => loglevel.info(`${timestamp()}: ${msg}`),
 }
 
@@ -15,17 +16,15 @@ export default {
     abort,
     expect,
     logger,
-    msg,
     timeout,
-    timestamp,
 }
 
-/** Asynchronous variant of setTimeout */
+/** asynchronous variant of setTimeout */
 async function timeout(ms: number) {
     await (promisify(setTimeout))(ms);
 }
 
-/** Aborts the app after an error */
+/** aborts the app after an error */
 function abort(err?: Error) {
     if (err !== undefined) {
         if (err.stack) {
@@ -36,10 +35,6 @@ function abort(err?: Error) {
     }
 
     process.exit(1);
-}
-
-function msg(str: string): string {
-    return `${timestamp()}: ${str}`
 }
 
 function expect<T>(maybe: T | undefined, err: string): T {
@@ -53,4 +48,8 @@ function expect<T>(maybe: T | undefined, err: string): T {
 function timestamp(): string {
     const now = new Date().toUTCString();
     return `[${now}]`;
+}
+
+function msg(str: string): string {
+    return `${timestamp()}: ${str}`
 }
