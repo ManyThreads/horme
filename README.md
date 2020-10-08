@@ -113,8 +113,8 @@ currently includes the following properties:
 ```json
 {
     "cmd": {
-        "exec": "node dist/services/ceiling-lamp/service.js",
-        "args": ["--color"]
+        "exec": "node dist/services/ceiling-lamp/service.js --color",
+        "args": []
     }
 }
 ```
@@ -141,7 +141,7 @@ topic prefixes must be appended by the service itself (see
 The MQTT host argument is passed in the following format:
 
 ```
-{protocol}://{hostname/ip-address}:{port}
+{protocol}://{hostname|ip-address}:{port}
 ```
 
 #### 3.2.2.1 Example
@@ -164,8 +164,18 @@ The format of configuration messages is as follows:
 
 ```json
 {
-    "add": ["[list of topics (strings)]"],
-    "del": ["[list of topics (strings)]"]
+    "add": ["[list of subscriptions (strings)]"],
+    "del": ["[list of subscriptions (strings)]"]
+}
+```
+
+Each subscription entry has the following structure:
+
+```json
+{
+    "uuid": "[string]",
+    "type": "[string]",
+    "topic": "[string]"
 }
 ```
 
