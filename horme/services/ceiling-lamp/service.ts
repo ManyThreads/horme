@@ -3,13 +3,12 @@ import chalk from 'chalk'
 import loglevel from 'loglevel'
 import { Static } from 'runtypes';
 
-import { ConfigMessage, DeviceMessage, Subscription, Value } from '../common'
+import { ConfigMessage, DeviceMessage, Value } from '../common'
 import getEnv from '../../src/env'
 import util from '../../src/util'
 
 /********** internal types ************************************************************************/
 
-type Subscription = Static<typeof Subscription>
 type Value = Static<typeof Value>
 
 type Device = {
@@ -27,7 +26,6 @@ type Topics = {
 
 const env = getEnv.from_file()
 const logger = util.logger
-const subscriptions: Map<string, Subscription> = new Map()
 
 const device: Device = {
     uuid: null,
@@ -64,6 +62,7 @@ async function main() {
                 if (topics.depends.includes(topic)) {
                     promise = handleDeviceMessage(client, topic, msg.toString(), topics)
                 } else {
+                    logger.error(topic + ' ... ' + topics.depends.join(', '))
                     throw new Error('message on unsubscribed topic received')
                 }
         }
@@ -76,30 +75,25 @@ async function main() {
 
 async function handleConfigMessage(client: AsyncMqttClient, msg: string, topics: Topics) {
     logger.debug(`config message received on topic '${topics.config}'`)
-    const subs = ConfigMessage.check(JSON.parse(msg)).subs
+    const config = ConfigMessage.check(JSON.parse(msg))
 
-    let unsubscribed = 0
-    for (const [uuid, sub] of subscriptions) {
-        if (!subs.find(sub => sub.uuid === uuid)) {
-            subscriptions.delete(uuid)
-            await client.unsubscribe(sub.topic)
-            unsubscribed += 1
-        }
+    const add = config.add.map(sub => `data/${sub.topic}`)
+    const del = config.del.map(sub => `data/${sub.topic}`)
+
+    topics.depends = topics.depends.concat(add)
+    topics.depends = topics.depends.filter(dep => !del.includes(dep))
+
+    if (del.length > 0) {
+        await client.unsubscribe(del)
     }
 
-    let subscribed = 0
-    for (const sub of subs) {
-        if (!subscriptions.has(sub.uuid)) {
-            subscriptions.set(sub.uuid, sub)
-            await client.subscribe('data/' + sub.topic)
-            subscribed += 1
-        }
+    if (add.length > 0) {
+        await client.subscribe(add)
     }
 
-    topics.depends = subs.map(sub => 'data/' + sub.topic)
-    logger.info(`(re-)configuration complete, ${subscribed} added, ${unsubscribed} removed`)
+    logger.info(`(re-)configuration complete, ${add.length} added, ${del.length} removed`)
 
-    if (topics.depends.length == 0) {
+    if (topics.depends.length === 0) {
         logger.warn('no light-switches configured, can not function properly')
     }
 }

@@ -1,8 +1,6 @@
 {
     "cmd": {
-        "exec": "node dist/services/light-switch/service.js",
-        "args": [
-            "--color"
-        ]
+        "exec": "/usr/local/bin/node dist/services/light-switch/service.js --color",
+        "args": []
     }
 }

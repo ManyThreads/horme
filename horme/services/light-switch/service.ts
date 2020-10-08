@@ -11,7 +11,7 @@ type State = 'on' | 'off'
 type Device = {
     uuid: string | null
     type: 'light-switch'
-    state: State
+    value: State
     timestamp: number
 }
 
@@ -22,7 +22,7 @@ const logger = util.logger
 const device: Device = {
     uuid: null,
     type: 'light-switch',
-    state: 'off',
+    value: 'off',
     timestamp: 0,
 }
 
@@ -60,7 +60,7 @@ async function main() {
 }
 
 async function setState(client: AsyncMqttClient, topic: string, state: State) {
-    device.state = state
+    device.value = state
     device.timestamp = new Date().getTime()
     logger.debug(`light switched '${state}'`)
     logger.debug(`device message sent to topic '${topic}'`)

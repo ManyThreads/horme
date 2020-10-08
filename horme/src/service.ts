@@ -134,7 +134,12 @@ async function instantiateService(
     selected: SelectedService,
     config: ServiceConfig
 ): Promise<[Service, Uuid[]]> {
-    const desc = selected as ServiceDescription
+    const desc: ServiceDescription = {
+        uuid: selected.uuid,
+        type: selected.type,
+        room: selected.room
+    }
+
     const service = services.get(desc.uuid)
     if (service === undefined) {
         const topic = buildTopic(desc)
@@ -159,22 +164,28 @@ async function configureService(service: Service, depends: Uuid[]) {
     let reconfigure = false
     const previous = service.depends
 
-    const subs: Subscription[] = []
+    const add: Subscription[] = []
+    const del: Subscription[] = []
+
+    // filter all services that will be retained from the previous configuration
     const retained = previous.filter(prev => {
         if (depends.find(uuid => prev.uuid === uuid)) {
-            subs.push({ uuid: prev.uuid, topic: prev.topic, type: prev.topic })
+            // if a previous service is found in the new configuration, keep it
             return true
         } else {
+            // ...otherwise filter it out
+            del.push({ uuid: prev.uuid, topic: prev.topic, type: prev.topic })
             reconfigure = true
             return false
         }
     })
 
+    // determine all services in the new configuration that were not present in the previous one
     const additions = depends.reduce((filtered, dep) => {
         const found = previous.find(prev => prev.uuid === dep)
         if (!found) {
             const dependency = services.get(dep)!
-            subs.push({ uuid: dependency.uuid, topic: dependency.topic, type: dependency.type })
+            add.push({ uuid: dependency.uuid, topic: dependency.topic, type: dependency.type })
             reconfigure = true
             filtered.push(dependency)
         }
@@ -186,7 +197,7 @@ async function configureService(service: Service, depends: Uuid[]) {
 
     if (reconfigure) {
         const topic = `conf/${service.topic}`
-        await client.publish(topic, JSON.stringify({ subs: subs }), { qos: 2, retain: true })
+        await client.publish(topic, JSON.stringify({ add, del }), { qos: 2, retain: true })
         logger.debug(`config message sent to '${topic}'`)
     }
 }

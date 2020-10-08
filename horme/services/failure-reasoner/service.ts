@@ -1,4 +1,3 @@
-import chalk from 'chalk'
 import loglevel from 'loglevel'
 import mqtt, { AsyncMqttClient } from 'async-mqtt'
 import { Static } from 'runtypes'
@@ -19,7 +18,7 @@ main().catch(err => util.abort(err))
 /** Asynchronous service entry point. */
 async function main() {
     loglevel.setLevel(env.LOG_LEVEL)
-    const [{ }, topic, host] = process.argv.slice(2)
+    const [{ }, topic, host] = process.argv.slice(3)
     logger.info(`failure-reasoner service online (${topic})`)
 
     const client = await mqtt.connectAsync(host, env.MQTT_AUTH)
@@ -39,16 +38,13 @@ type LightSwitch = {
 }
 
 class Service {
-    private topics: {
-        service: string
-        config: string
-    }
+    private topics: { service: string, config: string }
     private client: AsyncMqttClient
     private observed: Map<string, LightSwitch> = new Map()
 
-    /** Construct service instance and register MQTT listener. */
+    /** construct service instance and register MQTT listener */
     constructor(topic: string, client: AsyncMqttClient) {
-        this.topics = { service: topic, config: 'conf/' + topic }
+        this.topics = { service: topic, config: `conf/${topic}` }
         this.client = client
 
         this.client.on('message', (topic, msg) => {
@@ -79,8 +75,31 @@ class Service {
     /** Handles configuration messages by updating the service's MQTT subscriptions. */
     private async handleConfigMessage(msg: string) {
         logger.debug(`config message received on topic '${this.topics.config}'`)
+        const config = ConfigMessage.check(JSON.parse(msg))
 
-        const subs = ConfigMessage.check(JSON.parse(msg)).subs
+        const del = config.del.map(sub => `data/${sub.topic}`)
+        const add = config.add.map(sub => `data/${sub.topic}`)
+
+        for (const sub of config.del) {
+            this.observed.delete(sub.uuid)
+        }
+
+        for (const sub of config.add) {
+            this.observed.set(sub.uuid, { sub, state: 'unknown' })
+        }
+
+        if (del.length > 0) {
+            await this.client.unsubscribe(del)
+        }
+
+        if (add.length > 0) {
+            await this.client.subscribe(add)
+        }
+
+        logger.info(`(re-)configuration complete, ${add.length} added, ${del.length} removed`)
+
+
+        /*const subs = ConfigMessage.check(JSON.parse(msg)).subs
 
         let unsubscribed = 0
         for (const [uuid, observed] of this.observed) {
@@ -104,11 +123,11 @@ class Service {
             }
         }
 
-        logger.info(`(re-)configuration complete, ${subscribed} added, ${unsubscribed} removed`)
+        logger.info(`(re-)configuration complete, ${subscribed} added, ${unsubscribed} removed`)*/
     }
 
     private async handleDeviceMessage(topic: string, msg: string, observed: LightSwitch) {
-        console.log(`${util.timestamp()}: device message received on topic '${topic}'`)
+        logger.debug(`device message received on topic '${topic}'`)
         const deviceMsg = DeviceMessage.check(JSON.parse(msg))
 
         if (observed.state === 'unknown' || observed.state !== deviceMsg.value) {

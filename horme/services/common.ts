@@ -15,7 +15,8 @@ export const Subscription = Record({
 })
 
 export const ConfigMessage = Record({
-    subs: Array(Subscription)
+    add: Array(Subscription),
+    del: Array(Subscription)
 })
 
 /*const assertConfigMessage = ConfigMessage.check
