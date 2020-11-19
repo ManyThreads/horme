@@ -1,0 +1,25 @@
+{
+  "version": "2.0.0",
+  "presentation": {
+    "reveal": "always",
+    "panel": "shared"
+  },
+  "type": "shell",
+  "tasks": [
+    {
+      "label": "reconf: build",
+      "group": "build",
+      "command": "docker run --env NODE_ENV=development -t --rm -v ${workspaceFolder}/horme:/build -w /build node:14-alpine sh -c \"yarn install && yarn build\""
+    },
+    {
+      "label": "docker-compose: dev",
+      "command": "docker-compose -f horme/docker-compose.debug.yml build --force-rm --no-cache && docker-compose -f horme/docker-compose.debug.yml up -d",
+      "dependsOn": "reconf: build"
+    },
+    {
+      "label": "docker-compose: prod",
+      "command": "docker-compose -f horme/docker-compose.yml up -d --build",
+      "dependsOn": "reconf: build"
+    }
+  ]
+}

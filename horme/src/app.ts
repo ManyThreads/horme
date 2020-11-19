@@ -7,10 +7,7 @@ import fail from './fail'
 import srv from './service'
 import util from './util'
 
-const env = getEnv.from_file()
-const logger = util.logger
-
-main().catch(err => util.abort(err))
+main().catch((err) => util.abort(err));
 
 async function main() {
     loglevel.setLevel(env.LOG_LEVEL);

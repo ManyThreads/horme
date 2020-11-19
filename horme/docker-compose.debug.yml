@@ -1,0 +1,13 @@
+version: "3.4"
+
+services:
+  reconf-debug:
+    image: node:14-alpine
+    environment:
+      NODE_ENV: development
+    ports:
+      - 9229:9229
+    volumes:
+      - ./:/usr/src/app
+    working_dir: /usr/src/app
+    command: ["node", "--inspect-brk=0.0.0.0:9229", "dist/app.js"]

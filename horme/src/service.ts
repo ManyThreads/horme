@@ -6,7 +6,7 @@ import loglevel from 'loglevel'
 import mqtt from 'async-mqtt'
 import { Array as ArrayType, Static, String, Record } from 'runtypes'
 
-import { Subscription } from '../services/common'
+import { Subscription } from './common'
 
 import db from './db'
 import getEnv from './env'
