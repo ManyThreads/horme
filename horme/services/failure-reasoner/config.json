@@ -1,6 +1,0 @@
-{
-    "cmd": {
-        "exec": "node dist/services/failure-reasoner/service.js --color",
-        "args": []
-    }
-}

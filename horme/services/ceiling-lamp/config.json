@@ -1,8 +1,0 @@
-{
-    "cmd": {
-        "exec": "node dist/services/ceiling-lamp/service.js",
-        "args": [
-            "--color"
-        ]
-    }
-}

@@ -1,0 +1,7 @@
+version: "3.4"
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:1.6.9
+    ports:
+      - 1883:1883

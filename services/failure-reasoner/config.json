@@ -1,0 +1,8 @@
+{
+  "container": "node:15-buster",
+  "path": "failure-reasoner",
+  "cmd": "node dist/service.js",
+  "args": [
+    "--color"
+  ]
+}

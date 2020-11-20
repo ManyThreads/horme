@@ -1,23 +1,27 @@
-import { Array, Literal, String, Record, Union } from 'runtypes'
+import { Array, Literal, String, Record, Union } from "runtypes";
+import * as env from "./env";
+import * as util from "./util";
 
-export const Value = Union(Literal('on'), Literal('off'))
+export { env, util };
+
+export const Value = Union(Literal("on"), Literal("off"));
 
 export const DeviceMessage = Record({
-    uuid: String,
-    type: String,
-    value: Value,
-})
+  uuid: String,
+  type: String,
+  value: Value,
+});
 
 export const Subscription = Record({
-    uuid: String,
-    type: String,
-    topic: String,
-})
+  uuid: String,
+  type: String,
+  topic: String,
+});
 
 export const ConfigMessage = Record({
-    add: Array(Subscription),
-    del: Array(Subscription)
-})
+  add: Array(Subscription),
+  del: Array(Subscription),
+});
 
 /*const assertConfigMessage = ConfigMessage.check
 

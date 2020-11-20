@@ -4,21 +4,39 @@
     "reveal": "always",
     "panel": "shared"
   },
+  "options": {
+    "env": {
+      "ts_js_build_container_cmd": "docker run --env NODE_ENV=development -t --rm -v ${workspaceFolder}:/build -w /build node:15-buster sh -c",
+      "test_compose_files": "-f services/camera-motion-detection/docker-compose.yml -f services/ceiling-lamp/docker-compose.yml -f services/failure-reasoner/docker-compose.yml services/light-switch/docker-compose.yml",
+      "dev_compose_files": "-f horme/docker-compose.debug.yml -f neo4j/docker-compose.yml -f mosquitto/docker-compose.yml",
+      "prod_compose_files": "-f horme/docker-compose.debug.yml -f neo4j/docker-compose.yml -f mosquitto/docker-compose.yml"
+    }
+  },
   "type": "shell",
   "tasks": [
     {
+      "label": "common: build",
+      "group": "build",
+      "command": "${ts_js_build_container_cmd} \"cd common && yarn install && yarn build\""
+    },
+    {
       "label": "reconf: build",
       "group": "build",
-      "command": "docker run --env NODE_ENV=development -t --rm -v ${workspaceFolder}/horme:/build -w /build node:14-alpine sh -c \"yarn install && yarn build\""
+      "command": "${ts_js_build_container_cmd} \"cd horme && yarn install && yarn build\"",
+      "dependsOn": "common build"
     },
     {
       "label": "docker-compose: dev",
-      "command": "docker-compose -f horme/docker-compose.debug.yml build --force-rm --no-cache && docker-compose -f horme/docker-compose.debug.yml up -d",
+      "command": "docker-compose -f horme/docker-compose.debug.yml build && docker-compose ${dev_compose_files} up -d",
       "dependsOn": "reconf: build"
     },
     {
+      "label": "docker-compose: dev clean-up",
+      "command": "docker-compose ${dev_compose_files} -f horme/docker-compose.debug.yml down -v --remove-orphans"
+    },
+    {
       "label": "docker-compose: prod",
-      "command": "docker-compose -f horme/docker-compose.yml up -d --build",
+      "command": "docker-compose ${prod_compose_files} up -d --build",
       "dependsOn": "reconf: build"
     }
   ]

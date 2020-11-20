@@ -1,0 +1,8 @@
+{
+  "container": "node:15-buster",
+  "path": "light-switch",
+  "cmd": "node dist/service.js",
+  "args": [
+    "--color"
+  ]
+}

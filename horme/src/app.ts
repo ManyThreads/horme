@@ -1,17 +1,17 @@
-import 'source-map-support/register'
+import loglevel from "loglevel";
 
-import loglevel from 'loglevel'
+import { util, env as getEnv } from "horme-common";
+import fail from "./fail";
+import srv from "./service";
 
-import getEnv from './env'
-import fail from './fail'
-import srv from './service'
-import util from './util'
+const env = getEnv.from_file();
+const logger = util.logger;
 
 main().catch((err) => util.abort(err));
 
 async function main() {
-    loglevel.setLevel(env.LOG_LEVEL);
-    await fail.setupFailureListener();
-    await srv.configureServices();
-    logger.info('initial configuration instantiated, listening...')
+  loglevel.setLevel(env.LOG_LEVEL);
+  await fail.setupFailureListener();
+  await srv.configureServices();
+  logger.info("initial configuration instantiated, listening...");
 }

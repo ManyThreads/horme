@@ -1,0 +1,11 @@
+version: "3.4"
+
+services:
+  reconf:
+    image: node:15-buster
+    environment:
+      NODE_ENV: production
+    volumes:
+      - ./:/usr/src/app
+    working_dir: /usr/src/app
+    command: ["node", "dist/service.js"]
