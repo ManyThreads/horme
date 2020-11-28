@@ -2,12 +2,16 @@ version: "3.4"
 
 services:
   reconf-debug:
-    image: node:14-alpine
+    image: reconf-container
+    build:
+      context: .
+      dockerfile: ./Dockerfile
     environment:
       NODE_ENV: development
     ports:
       - 9229:9229
     volumes:
       - ./:/usr/src/app
+      - /var/run/docker.sock:/var/run/docker.sock
     working_dir: /usr/src/app
     command: ["node", "--inspect-brk=0.0.0.0:9229", "dist/app.js"]

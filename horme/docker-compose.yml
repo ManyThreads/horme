@@ -2,10 +2,14 @@ version: "3.4"
 
 services:
   reconf:
-    image: node:14-alpine
+    image: reconf-container
+    build:
+      context: .
+      dockerfile: ./Dockerfile
     environment:
       NODE_ENV: production
     volumes:
       - ./:/usr/src/app
+      - /var/run/docker.sock:/var/run/docker.sock
     working_dir: /usr/src/app
     command: ["node", "dist/app.js"]
