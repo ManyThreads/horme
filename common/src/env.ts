@@ -19,6 +19,7 @@ export type Env = {
   MQTT_HOST: string;
   MQTT_AUTH: Auth | undefined;
   LOG_LEVEL: LogLevelDesc;
+  SERVICE_DIR: string;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -56,6 +57,10 @@ function init_env(): Env {
     ),
     MQTT_AUTH: parseMqttAuth(),
     LOG_LEVEL: parseLogLevel(),
+    SERVICE_DIR: expect(
+      process.env.SERVICE_DIR,
+      '.env file must specify "SERVICE_DIR'
+    )
   };
 }
 
