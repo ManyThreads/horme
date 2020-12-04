@@ -12,6 +12,11 @@ services:
       - 9229:9229
     volumes:
       - ./:/usr/src/app
-      - /var/run/docker.sock:/var/run/docker.sock
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+      # - /var/run/docker.sock:/var/run/docker.sock
+      - ../services:/usr/src/app/services
     working_dir: /usr/src/app
-    command: ["node", "--inspect-brk=0.0.0.0:9229", "dist/app.js"]
+    command: ["node", "--inspect=0.0.0.0:9229", "dist/app.js"]
+    # command: ["node", "--inspect-brk=0.0.0.0:9229", "dist/app.js"]

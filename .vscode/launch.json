@@ -11,6 +11,7 @@
       "skipFiles": ["horme/<node_internals>/**"],
       "type": "pwa-node",
       "preLaunchTask": "docker-compose: dev",
+      "postDebugTask": "docker-compose: dev clean-up",
       "localRoot": "${workspaceFolder}/horme/dist",
       "remoteRoot": "/usr/src/app/dist",
       "outFiles": [

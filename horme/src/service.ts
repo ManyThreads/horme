@@ -1,4 +1,4 @@
-import { spawn, ChildProcessWithoutNullStreams } from "child_process";
+import { spawn, ChildProcessWithoutNullStreams, execSync } from "child_process";
 import fs from "fs/promises";
 
 import chalk from "chalk";
@@ -43,10 +43,10 @@ export interface SelectedService extends ServiceDescription {
 
 /** The configuration for starting a service instance of a type. */
 const ServiceConfig = Record({
-  cmd: Record({
-    exec: String,
-    args: ArrayType(String),
-  }),
+  container: String,
+  path: String,
+  cmd: String,
+  args: ArrayType(String),
 });
 
 type ServiceConfig = Static<typeof ServiceConfig>;
@@ -89,7 +89,7 @@ async function removeService(uuid: string) {
 
   const previousServices = Array.from(services.values());
   const newServices = Array.from(
-    reconfiguration.flatMap(([{}, instances]) => {
+    reconfiguration.flatMap(([{ }, instances]) => {
       return instances.map((instance) => instance.uuid);
     })
   );
@@ -104,7 +104,8 @@ async function removeService(uuid: string) {
   for (const service of removals) {
     logger.warn("killing process of service " + chalk.underline(service.uuid));
 
-    service.proc.kill();
+    execSync(`docker stop ${service.uuid}`);
+    execSync(`docker rm ${service.uuid}`);
     services.delete(service.uuid);
   }
 
@@ -125,6 +126,7 @@ async function instantiateServices(
   const promises = await Promise.all(
     selection.map(async ([type, selected]) => {
       const file = await fs.readFile(`./services/${type}/config.json`);
+      // console.log("Got config file: " + file.toString());
       const config = ServiceConfig.check(JSON.parse(file.toString()));
 
       return await Promise.all(
@@ -221,39 +223,47 @@ function startService(
   config: ServiceConfig,
   topic: string
 ): ServiceProcess {
-  const exec = config.cmd.exec.split(" ");
+  const args = [...config.args, desc.uuid, topic, env.MQTT_HOST];
 
-  const path = exec.shift();
-  const args = exec
-    .concat([desc.uuid, topic, env.MQTT_HOST])
-    .concat(config.cmd.args);
+  let node_cmd = config.cmd;
+  args.forEach(arg => {
+    node_cmd += " ";
+    node_cmd += arg;
+  })
+  const cmd = [
+    `run`,
+    `-t`,
+    `-v`, `${env.SERVICE_DIR}/${config.path}:/usr/src/app`,
+    `-w`, `/usr/src/app`,
+    `--name`, `${desc.uuid}`,
+    `--network`, `horme_default`,
+    `${config.container}`,
+    `/bin/sh`, `-c`, `${node_cmd}`,
+  ]
 
-  if (path === undefined) {
-    throw new Error("invalid command path in config file");
-  } else {
-    const proc = spawn(path, args);
-    proc.stdout.on("data", (data: Buffer) => {
-      console.log(
-        `\tfrom '${desc.type}/${chalk.underline(desc.uuid)}' (stdout):`
-      );
-      const lines = data.toString("utf-8").split("\n");
-      for (const line of lines) {
-        console.log(`\t${line}`);
-      }
-    });
+  const serivce_instance = spawn("docker", cmd);
 
-    proc.stderr.on("data", (data: Buffer) => {
-      console.log(
-        `\tfrom '${desc.type}/${chalk.underline(desc.uuid)}' (stderr):`
-      );
-      const lines = data.toString("utf-8").split("\n");
-      for (const line of lines) {
-        console.log(`\t${line}`);
-      }
-    });
+  serivce_instance.stdout.on("data", (data: Buffer) => {
+    console.log(
+      `\tfrom '${desc.type}/${chalk.underline(desc.uuid)}' (stdout):`
+    );
+    const lines = data.toString("utf-8").split("\n");
+    for (const line of lines) {
+      console.log(`\t${line}`);
+    }
+  });
 
-    return proc;
-  }
+  serivce_instance.stderr.on("data", (data: Buffer) => {
+    console.log(
+      `\tfrom '${desc.type}/${chalk.underline(desc.uuid)}' (stderr):`
+    );
+    const lines = data.toString("utf-8").split("\n");
+    for (const line of lines) {
+      console.log(`\t${line}`);
+    }
+  });
+
+  return serivce_instance;
 }
 
 /** Creates the topic for the service instance of the given service type. */
@@ -264,3 +274,14 @@ function buildTopic(instance: ServiceDescription): string {
       : `${env.APARTMENT}/global`;
   return `${base}/${instance.type}${instance.uuid}`;
 }
+
+export const dockerTest = () => {
+  const docker_test = spawn("docker", ["version"]);
+
+  docker_test.stdout.on("data", (data: Buffer) => {
+    const lines = data.toString("utf-8").split("\n");
+    for (const line of lines) {
+      console.log(`\t${line}`);
+    }
+  });
+};
