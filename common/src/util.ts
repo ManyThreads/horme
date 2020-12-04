@@ -10,6 +10,7 @@ const logger = {
   warn: (msg: string) => loglevel.warn(`${timestamp()}: ${chalk.yellow(msg)}`),
   error: (msg: string) => loglevel.error(`${timestamp()}: ${chalk.red(msg)}`),
   info: (msg: string) => loglevel.info(`${timestamp()}: ${msg}`),
+  getLogLevel: () => loglevel,
 };
 
 export { abort, expect, logger, timeout };

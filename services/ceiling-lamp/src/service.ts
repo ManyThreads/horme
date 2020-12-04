@@ -1,5 +1,4 @@
 import mqtt, { AsyncMqttClient } from "async-mqtt";
-import loglevel from "loglevel";
 import { Static } from "runtypes";
 
 import {
@@ -40,8 +39,8 @@ const device: Device = {
 main().catch((err) => util.abort(err));
 
 async function main() {
-  loglevel.setLevel(env.LOG_LEVEL);
-  const [uuid, topic] = process.argv.slice(2);
+  logger.getLogLevel().setLevel(env.LOG_LEVEL);
+  const [uuid, topic] = process.argv.slice(3);
   const dataTopic = "data/" + topic;
   logger.info(`ceiling-lamp service online (${topic})`);
 

@@ -1,4 +1,3 @@
-import loglevel from "loglevel";
 import mqtt, { AsyncMqttClient } from "async-mqtt";
 
 import { env as getEnv, util } from "horme-common";
@@ -31,7 +30,7 @@ main().catch((err) => util.abort(err));
 
 /** Asynchronous service entry point. */
 async function main() {
-  loglevel.setLevel(env.LOG_LEVEL);
+  logger.getLogLevel().setLevel(env.LOG_LEVEL);
   const [uuid, topic, host] = process.argv.slice(3);
   const dataTopic = "data/" + topic;
   logger.info(`light-switch service online (${topic})`);

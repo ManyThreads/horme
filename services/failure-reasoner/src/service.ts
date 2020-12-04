@@ -1,4 +1,3 @@
-import loglevel from "loglevel";
 import mqtt, { AsyncMqttClient } from "async-mqtt";
 import { Static } from "runtypes";
 
@@ -22,8 +21,8 @@ main().catch((err) => util.abort(err));
 
 /** Asynchronous service entry point. */
 async function main() {
-  loglevel.setLevel(env.LOG_LEVEL);
-  const [{ }, topic, host] = process.argv.slice(3);
+  logger.getLogLevel().setLevel(env.LOG_LEVEL);
+  const [_, topic, host] = process.argv.slice(3);
   logger.info(`failure-reasoner service online (${topic})`);
 
   const client = await mqtt.connectAsync(host, env.MQTT_AUTH);
