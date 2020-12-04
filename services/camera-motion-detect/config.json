@@ -1,6 +1,6 @@
 {
-    "cmd": {
-        "exec": "/usr/bin/motion_sensor",
-        "args": []
-    }
+  "container": "camera-motion",
+  "path": "camera-motion-detect",
+  "cmd": "/usr/bin/motion_sensor",
+  "args": []
 }
