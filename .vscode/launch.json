@@ -8,7 +8,9 @@
       "name": "Horme: Reconf Docker Debug",
       "port": 9229,
       "request": "attach",
-      "skipFiles": ["horme/<node_internals>/**"],
+      "skipFiles": [
+        "horme/<node_internals>/**"
+      ],
       "type": "pwa-node",
       "preLaunchTask": "docker-compose: dev",
       "postDebugTask": "docker-compose: dev clean-up",
@@ -19,6 +21,12 @@
         // , "!**/node_modules/**"
       ],
       "sourceMaps": true
+    },
+    {
+      "name": "Horme: Reconf Docker Run",
+      "request": "launch",
+      "type": "pwa-node",
+      "preLaunchTask": "docker-compose: prod",
     }
   ]
 }

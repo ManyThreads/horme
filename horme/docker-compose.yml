@@ -11,5 +11,6 @@ services:
     volumes:
       - ./:/usr/src/app
       - /var/run/docker.sock:/var/run/docker.sock
+      - ../services:/usr/src/app/services
     working_dir: /usr/src/app
     command: ["node", "dist/app.js"]
