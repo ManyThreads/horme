@@ -14,6 +14,7 @@ import db from "./db";
 export default {
   configureServices,
   removeService,
+  cleanUp,
 };
 
 /********** exported types ************************************************************************/
@@ -68,6 +69,7 @@ const logger = util.logger;
 const client = mqtt.connect(env.MQTT_HOST, env.MQTT_AUTH);
 /** The hashmap containing all active instantiated services. */
 const services: Map<Uuid, Service> = new Map();
+const serviceNamePrefix = `horme-`;
 
 /********** implementation ************************************************************************/
 
@@ -104,8 +106,8 @@ async function removeService(uuid: string) {
   for (const service of removals) {
     logger.warn("killing process of service " + chalk.underline(service.uuid));
 
-    execSync(`docker stop ${service.uuid}`);
-    execSync(`docker rm ${service.uuid}`);
+    execSync(`docker stop ${serviceNamePrefix}${service.uuid}`);
+    execSync(`docker rm ${serviceNamePrefix}${service.uuid}`);
     services.delete(service.uuid);
   }
 
@@ -117,6 +119,11 @@ async function removeService(uuid: string) {
   await Promise.all(
     instantiatedServices.map((args) => configureService(...args))
   );
+}
+
+function cleanUp() {
+  execSync(`docker stop -t 1 $(docker ps -q -f \"name=${serviceNamePrefix}\")`);
+  execSync(`docker rm $(docker ps -a -q -f \"name=${serviceNamePrefix}\")`);
 }
 
 /** Instantiates all (not yet instantiated) services in the given `selection`. */
@@ -235,7 +242,7 @@ function startService(
     `-t`,
     `-v`, `${env.SERVICE_DIR}/${config.path}:/usr/src/app`,
     `-w`, `/usr/src/app`,
-    `--name`, `${desc.uuid}`,
+    `--name`, `${serviceNamePrefix}${desc.uuid}`,
     `--network`, `horme_default`,
     `${config.container}`,
     `/bin/sh`, `-c`, `${node_cmd}`,
