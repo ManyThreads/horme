@@ -128,11 +128,11 @@ currently includes the following properties:
 Every compliant service must accept and handle an *ordered set* of program
 arguments, which are passed down to it by the configuration system.
 
-- 1. service UUID: an unique **string** assigned to the service instance
-- 2. service topic: the unique topic (path) **string** assigned to the service
-- 3. MQTT host: the MQTT host address
-- 4. MQTT authentication (optional): **either** username and password, only
-     username or no argument at all (all **strings**)
+1. service UUID: an unique **string** assigned to the service instance
+2. service topic: the unique topic (path) **string** assigned to the service
+3. MQTT host: the MQTT host address
+4. MQTT authentication (optional): **either** username and password, only
+username or no argument at all (all **strings**)
 
 ### 3.2.1 Service Topic
 
@@ -160,9 +160,9 @@ There are two scenarios, in which the configuration system will send a
 configuration message to a service, and only services specifying dependent
 services in their configuration need bother with configuration messages at all.
 
-- 1. initial configuration (notifying the service of the topics of its
-     dependencies)
-- 2. reconfiguration (notifying the service of added and removed dependencies)
+1. initial configuration (notifying the service of the topics of its
+dependencies)
+2. reconfiguration (notifying the service of added and removed dependencies)
 
 The format of configuration messages is as follows:
 
@@ -211,10 +211,10 @@ Services, that are not associated with a specific room have the special
 
 Topics may be prefixed with one of four possible prefix strings:
 
-- 1. `data`
-- 2. `conf`
-- 3. `fail`
-- 4. `inf`
+1. `data`
+2. `conf`
+3. `fail`
+1. `inf`
 
 A fifth `cmd` prefix is reserved for potential use at a later stage
 
@@ -244,10 +244,10 @@ must **subscribe** to this topic:
 
 As of now, the following service types are modelled:
 
-- 1. `light-switch`
-- 2. `camera-motion-detect`
-- 3. `failure-detect`
-- 4. `ceiling-lamp`
+1. `light-switch`
+2. `camera-motion-detect`
+3. `failure-detect`
+4. `ceiling-lamp`
 
 Both `light-switch` and `camera-motion-detect` services can be used to infer
 *presence* in their respective room.
@@ -258,7 +258,7 @@ services (two as of now).
 
 All services publish their state in messages of the following format:
 
-```json
+```jsonc
 {
     "uuid": "[string]",
     "type": "[string]",
