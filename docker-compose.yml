@@ -4,8 +4,8 @@ services:
   reconf:
     build: .
     volumes:
-      - ./horme:/home/node/horme
-    working_dir: /home/node/horme
+      - ./reconf:/home/node/reconf
+    working_dir: /home/node/reconf
     depends_on:
       - neo4j
       - mosquitto

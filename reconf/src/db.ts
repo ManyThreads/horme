@@ -1,10 +1,10 @@
-import { SelectedService, ServiceSelection, ServiceType, Uuid } from './service'
+import { SelectedService, ServiceSelection, ServiceType, Uuid } from './service';
 
 /********** exports ******************************************************************************/
 
 export default {
     queryServiceSelection
-}
+};
 
 /** Options for specifying which changes need to be made in the database. */
 export interface ConfigUpdates {
@@ -30,11 +30,11 @@ async function queryServiceSelection(
             failureReasoner.depends = [];
             updateCount = 2;
         } else {
-            throw new Error("exceeded bounds of static reconfiguration scenario");
+            throw new Error('exceeded bounds of static reconfiguration scenario');
         }
     }
 
-    return Array.from(config)
+    return Array.from(config);
 }
 
 const bedroomSwitch1: SelectedService = {

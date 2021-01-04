@@ -13,8 +13,8 @@ The following assumes a Linux environment.
 
 **Arch based:**
 
-```bash
-$ pacman -S docker docker-compose
+```shell
+# pacman -S docker docker-compose
 ```
 
 **Debian based:**
@@ -27,6 +27,10 @@ or [Ubuntu](https://docs.docker.com/engine/install/ubuntu/).
 See documentation for Linux [post-installation steps](https://docs.docker.com/engine/install/linux-postinstall/).
 
 # 2. Usage
+
+Before starting the reconfiguration environment declaration file needs to be created for the specific use case.
+A template for such a file can be found under `reconf/.env.template`.
+This can be copied as `reconf/.env` and individually adjusted to the specific usage/deployment scenario.
 
 ## 2.1 Starting & Building Containers
 

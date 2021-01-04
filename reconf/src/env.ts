@@ -1,15 +1,14 @@
-import { LogLevelDesc } from 'loglevel'
-import dotenv from 'dotenv'
+import { LogLevelDesc } from 'loglevel';
+import dotenv from 'dotenv';
 
-import util from './util'
+import util from './util';
 
-export default {
-    from_file
-}
+export default { fromFile };
 
 /********** module state **************************************************************************/
 
-let env: Env
+// lazily initialized
+let env: Env;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Env
@@ -36,23 +35,23 @@ export type Auth = {
 /********** functions *****************************************************************************/
 
 // Returns global environment from .env file.
-function from_file(): Env {
+function fromFile(): Env {
     if (env === undefined) {
-        env = init_env()
+        env = initEnv();
     }
 
-    return env
+    return env;
 }
 
 // Lazily initializes the module state.
-function init_env(): Env {
-    dotenv.config()
+function initEnv(): Env {
+    dotenv.config();
     return {
         APARTMENT: util.expect(process.env.APARTMENT, '.env file must specify "APARTMENT"'),
         MQTT_HOST: util.expect(process.env.MQTT_HOST, '.env file must specify "MQTT_HOST"'),
         MQTT_AUTH: parseMqttAuth(),
         LOG_LEVEL: parseLogLevel(),
-    }
+    };
 }
 
 // Parses or returns log level from .env file or returns default ('error').
@@ -78,6 +77,6 @@ function parseMqttAuth(): Auth | undefined {
     } else if (typeof user === 'string') {
         return { username: user, pass: pass };
     } else {
-        throw new Error(`.env file must also specify "MQTT_USER" if "MQTT_PASS" is specified`);
+        throw new Error('.env file must also specify "MQTT_USER" if "MQTT_PASS" is specified');
     }
 }

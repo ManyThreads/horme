@@ -10,14 +10,14 @@ const logger = {
     warn: (msg: string) => loglevel.warn(`${timestamp()}: ${chalk.yellow(msg)}`),
     error: (msg: string) => loglevel.error(`${timestamp()}: ${chalk.red(msg)}`),
     info: (msg: string) => loglevel.info(`${timestamp()}: ${msg}`),
-}
+};
 
 export default {
     abort,
     expect,
     logger,
     timeout,
-}
+};
 
 /** asynchronous variant of setTimeout */
 async function timeout(ms: number) {
@@ -51,5 +51,5 @@ function timestamp(): string {
 }
 
 function msg(str: string): string {
-    return `${timestamp()}: ${str}`
+    return `${timestamp()}: ${str}`;
 }
