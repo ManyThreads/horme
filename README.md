@@ -39,10 +39,10 @@ docker run --env NODE_ENV=development -t --rm -v $(pwd):/build -w /build node:15
 Build reconf:
 
 ```bash
-docker run --env NODE_ENV=development -t --rm -v $(pwd):/build -w /build node:15-buster sh -c "cd reconf && yarn install && yarn build"
+docker run --env NODE_ENV=development -t --rm -v $(pwd):/build -w /build node:15-buster sh -c "cd horme && yarn install && yarn build"
 ```
 
-Build test services:  
+Build test services:
 TODO: generic setup process for services
 
 ```bash
