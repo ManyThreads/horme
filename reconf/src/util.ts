@@ -5,11 +5,11 @@ import { promisify } from 'util';
 
 /** logging function wrappers for `loglevel` */
 const logger = {
-    trace: (msg: string) => loglevel.trace(`${timestamp()}: ${msg}`),
-    debug: (msg: string) => loglevel.debug(`${timestamp()}: ${msg}`),
-    warn: (msg: string) => loglevel.warn(`${timestamp()}: ${chalk.yellow(msg)}`),
-    error: (msg: string) => loglevel.error(`${timestamp()}: ${chalk.red(msg)}`),
-    info: (msg: string) => loglevel.info(`${timestamp()}: ${msg}`),
+    trace: (msg: string): void => loglevel.trace(`${timestamp()}: ${msg}`),
+    debug: (msg: string): void => loglevel.debug(`${timestamp()}: ${msg}`),
+    warn: (msg: string): void => loglevel.warn(`${timestamp()}: ${chalk.yellow(msg)}`),
+    error: (msg: string): void => loglevel.error(`${timestamp()}: ${chalk.red(msg)}`),
+    info: (msg: string): void => loglevel.info(`${timestamp()}: ${msg}`),
 };
 
 export default {
@@ -20,12 +20,12 @@ export default {
 };
 
 /** asynchronous variant of setTimeout */
-async function timeout(ms: number) {
+async function timeout(ms: number): Promise<void> {
     await (promisify(setTimeout))(ms);
 }
 
 /** aborts the app after an error */
-function abort(err?: Error) {
+function abort(err?: Error): void {
     if (err !== undefined) {
         if (err.stack) {
             logger.error(chalk.red(err.stack));
@@ -39,7 +39,7 @@ function abort(err?: Error) {
 
 function expect<T>(maybe: T | undefined, err: string): T {
     if (maybe !== undefined) {
-        return maybe!;
+        return maybe;
     } else {
         throw new Error(err);
     }
@@ -48,8 +48,4 @@ function expect<T>(maybe: T | undefined, err: string): T {
 function timestamp(): string {
     const now = new Date().toUTCString();
     return `[${now}]`;
-}
-
-function msg(str: string): string {
-    return `${timestamp()}: ${str}`;
 }

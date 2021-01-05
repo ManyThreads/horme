@@ -2,7 +2,6 @@ import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
 import fs from 'fs/promises';
 
 import chalk from 'chalk';
-import loglevel from 'loglevel';
 import mqtt from 'async-mqtt';
 import { Array as ArrayType, Static, String, Record } from 'runtypes';
 
@@ -75,7 +74,7 @@ const services: Map<Uuid, Service> = new Map();
 /********** implementation ************************************************************************/
 
 /** Instantiates and configures the set of services selected from the database. */
-async function configureServices() {
+async function configureServices(): Promise<void> {
     // query current service selection from database
     const result = await db.queryServiceSelection();
     // instantiate all not yet instantiated services, insert them into global map
@@ -86,12 +85,12 @@ async function configureServices() {
 
 /** Removes the service with the given `uuid` and triggers a full service selection
  *  and configuration update. */
-async function removeService(uuid: string) {
+async function removeService(uuid: string): Promise<void> {
     // retrieve updated service selection from database
     const reconfiguration = await db.queryServiceSelection({ del: [uuid] });
 
     const previousServices = Array.from(services.values());
-    const newServices = Array.from(reconfiguration.flatMap(([{ }, instances]) => {
+    const newServices = Array.from(reconfiguration.flatMap(([_, instances]) => {
         return instances.map(instance => instance.uuid);
     }));
 

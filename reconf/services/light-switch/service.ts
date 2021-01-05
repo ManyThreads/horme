@@ -39,7 +39,7 @@ async function main() {
     device.uuid = uuid;
 
     const client = await mqtt.connectAsync(host, env.MQTT_AUTH);
-    client.on('message', ({ }, { }) => {
+    client.on('message', (_topic, _msg) => {
         util.abort(new Error('light-switch service not configured to receive messages'));
     });
 

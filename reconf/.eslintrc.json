@@ -1,6 +1,7 @@
 {
     "env": {
-        "browser": true,
+        "node": true,
+        "browser": false,
         "es2021": true
     },
     "extends": [
@@ -37,6 +38,20 @@
         ],
         "camelcase": [
             "warn"
+        ],
+        "no-unused-vars": [
+            "error",
+            {
+                "argsIgnorePattern": "^_",
+                "varsIgnorePattern": "^_"
+            }
+        ],
+        "@typescript-eslint/no-unused-vars": [
+            "error",
+            {
+                "argsIgnorePattern": "^_",
+                "varsIgnorePattern": "^_"
+            }
         ]
     }
 }

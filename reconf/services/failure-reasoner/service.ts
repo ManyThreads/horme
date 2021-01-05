@@ -18,7 +18,7 @@ main().catch(err => util.abort(err));
 /** Asynchronous service entry point. */
 async function main() {
     loglevel.setLevel(env.LOG_LEVEL);
-    const [{ }, topic, host] = process.argv.slice(3);
+    const [_, topic, host] = process.argv.slice(3);
     logger.info(`failure-reasoner service online (${topic})`);
 
     const client = await mqtt.connectAsync(host, env.MQTT_AUTH);
@@ -29,18 +29,18 @@ async function main() {
 
 /********** internal types ************************************************************************/
 
-type State = Static<typeof Value> | 'unknown'
-type Subscription = Static<typeof Subscription>
+type State = Static<typeof Value> | 'unknown';
+type Subscription = Static<typeof Subscription>;
 
 type LightSwitch = {
-    sub: Subscription
-    state: State
-}
+    sub: Subscription;
+    state: State;
+};
 
 class Service {
-    private topics: { service: string, config: string }
-    private client: AsyncMqttClient
-    private observed: Map<string, LightSwitch> = new Map()
+    private topics: { service: string, config: string; };
+    private client: AsyncMqttClient;
+    private observed: Map<string, LightSwitch> = new Map();
 
     /** construct service instance and register MQTT listener */
     constructor(topic: string, client: AsyncMqttClient) {
@@ -54,7 +54,7 @@ class Service {
                     promise = this.handleConfigMessage(msg.toString());
                     break;
                 default: {
-                    const device = JSON.parse(msg.toString()) as { uuid: string, type: string };
+                    const device = JSON.parse(msg.toString()) as { uuid: string, type: string; };
                     const observed = this.observed.get(device.uuid);
                     if (observed) {
                         promise = this.handleDeviceMessage(topic, msg.toString(), observed);

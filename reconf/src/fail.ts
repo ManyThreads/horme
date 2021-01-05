@@ -27,7 +27,7 @@ const logger = util.logger;
 /********** implementation ************************************************************************/
 
 /** initializes the MQTT failure listener client and registers callback */
-async function setupFailureListener() {
+async function setupFailureListener(): Promise<void> {
     // connect MQTT client
     const client = await mqtt.connectAsync(env.MQTT_HOST, env.MQTT_AUTH);
     // set MQTT client message event listener
