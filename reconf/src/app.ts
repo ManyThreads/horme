@@ -2,10 +2,9 @@ import 'source-map-support/register';
 
 import loglevel from 'loglevel';
 
-import getEnv from './env';
+import { env as getEnv, util } from 'horme-common';
 import fail from './fail';
 import srv from './service';
-import util from './util';
 
 const env = getEnv.fromFile();
 const logger = util.logger;

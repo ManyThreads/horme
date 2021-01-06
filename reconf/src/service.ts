@@ -3,13 +3,12 @@ import fs from 'fs/promises';
 
 import chalk from 'chalk';
 import mqtt from 'async-mqtt';
-import { Array as ArrayType, Static, String, Record } from 'runtypes';
+import { Array as ArrayType, Null, Static, String, Record } from 'runtypes';
 
 import { Subscription } from './common';
 
 import db from './db';
-import getEnv from './env';
-import util from './util';
+import { env as getEnv, util } from 'horme-common';
 
 /********** exports *******************************************************************************/
 
@@ -45,6 +44,7 @@ export interface SelectedService extends ServiceDescription {
 
 /** The configuration for starting a service instance of a type. */
 const ServiceConfig = Record({
+    sensor: String.Or(Null),
     cmd: Record({
         exec: String,
         args: ArrayType(String)
