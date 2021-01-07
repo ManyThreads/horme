@@ -240,6 +240,7 @@ function startService(
   const cmd = [
     `run`,
     `-t`,
+    `--env-file`, `.env`,
     `-v`, `${env.SERVICE_DIR}/${config.path}:/usr/src/app`,
     `-w`, `/usr/src/app`,
     `--name`, `${serviceNamePrefix}${desc.uuid}`,
