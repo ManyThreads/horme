@@ -63,13 +63,13 @@ yarn install && yarn build
 ## 2.2 Run
 
 ```bash
-docker-compose -f neo4j/docker-compose.yml -f mosquitto/docker-compose.yml up -d --build && docker-compose -f horme/docker-compose.yml up --build
+docker-compose -f horme/docker-compose.yml up --build
 ```
 
 ## 2.3 Stop
 
 ```bash
-docker-compose -f neo4j/docker-compose.yml -f mosquitto/docker-compose.yml -f horme/docker-compose.yml down -v --remove-orphans
+docker-compose -f horme/docker-compose.yml down -v --remove-orphans
 ```
 
 ## 2.4 Purging all Docker Containers, Images, Volumes and Networks

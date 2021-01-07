@@ -18,3 +18,17 @@ services:
     working_dir: /usr/src/app
     command: ["node", "--inspect=0.0.0.0:9229", "dist/app.js"]
     # command: ["node", "--inspect-brk=0.0.0.0:9229", "dist/app.js"]
+  neo4j:
+    image: neo4j:4.0.4
+    volumes:
+      - ./dbms/data:/data
+      - ./dbms/logs:/logs
+    environment:
+      - NEO4J_AUTH=neo4j/admin
+    ports:
+      - 7474:7474
+      - 7687:7687
+  mosquitto:
+    image: eclipse-mosquitto:1.6.9
+    ports:
+      - 1883:1883
