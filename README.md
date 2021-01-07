@@ -33,13 +33,13 @@ See documentation for Linux [post-installation steps](https://docs.docker.com/en
 Build common:
 
 ```bash
-docker run --env NODE_ENV=development -t --rm -v $(pwd):/build -w /build node:15-buster sh -c "cd common && yarn install && yarn build"
+docker-compose -f common/docker-compose.build.yml up
 ```
 
 Build reconf:
 
 ```bash
-docker run --env NODE_ENV=development -t --rm -v $(pwd):/build -w /build node:15-buster sh -c "cd horme && yarn install && yarn build"
+docker-compose -f horme/docker-compose.build.yml up
 ```
 
 Build test services:
