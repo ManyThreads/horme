@@ -1,6 +1,6 @@
-import { Array, Literal, Null, String, Record, Union } from "runtypes";
+import { Array, Literal, Null, Number, String, Record, Union } from "runtypes";
 
-export { default as env, Auth, Environment } from './env';
+export { default as env, MqttAuth, Environment, ServiceEnvironment } from './env';
 export { default as util } from './util';
 
 /** The transmitted values of binary sensors. */
@@ -8,16 +8,20 @@ export const Value = Union(Literal('on'), Literal('off'));
 
 /** The format for device messages. */
 export const DeviceMessage = Record({
+    apartment: String,
+    location: String,
     uuid: String,
     type: String,
     value: Value,
+    sensor: String.Or(Null),
+    timestamp: Number,
 });
 
 /** The Service information sent with each configuration message. */
 export const ServiceInfo = Record({
     topic: String,
     apartment: String,
-    room: String,
+    location: String,
     uuid: String,
     type: String,
     sensor: String.Or(Null)

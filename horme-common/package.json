@@ -6,6 +6,10 @@
   "types": "dist/lib.d.ts",
   "author": "Oliver Giersch",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ManyThreads/horme.git"
+  },
   "scripts": {
     "build": "./node_modules/.bin/tsc --declaration -p ."
   },
