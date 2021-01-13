@@ -1,5 +1,5 @@
 {
-  "container": "node:15-buster",
+  "container": "ceiling-lamp",
   "path": "ceiling-lamp",
   "cmd": "node dist/service.js",
   "args": [

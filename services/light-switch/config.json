@@ -1,5 +1,5 @@
 {
-  "container": "node:15-buster",
+  "container": "light-switch",
   "path": "light-switch",
   "cmd": "node dist/service.js",
   "args": [

@@ -1,5 +1,5 @@
 {
-  "container": "node:15-buster",
+  "container": "failure-reasoner",
   "path": "failure-reasoner",
   "cmd": "node dist/service.js",
   "args": [

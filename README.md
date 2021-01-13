@@ -43,21 +43,9 @@ docker-compose -f horme/docker-compose.build.yml up
 ```
 
 Build test services:
-TODO: generic setup process for services
 
 ```bash
-cd services
-cd camera-motion-detect
-./docker_build.sh
-cd ..
-cd ceiling-lamp/
-yarn install && yarn build
-cd ..
-cd failure-reasoner/
-yarn install && yarn build
-cd ..
-cd light-switch/
-yarn install && yarn build
+./install_services.sh
 ```
 
 ## 2.2 Run
