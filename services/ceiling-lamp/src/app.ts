@@ -13,19 +13,16 @@ type ServiceInfo = Static<typeof ServiceInfo>;
 let serviceInfo: ServiceInfo;
 let subCount = 0;
 
-const env = getEnv.fromEnvironment();
+const env = getEnv.readEnvironment('service');
 const logger = util.logger;
 
 main().catch(err => util.abort(err));
 
 async function main() {
-    // TODO: get from environment
-    const [_, topic] = process.argv.slice(2);
+    const confTopic = 'conf/' + env.topic;
+    const dataTopic = 'data/' + env.topic;
 
-    const confTopic = 'conf/' + topic;
-    const dataTopic = 'data/' + topic;
-
-    const client = await mqtt.connectAsync(env.MQTT_HOST, env.MQTT_AUTH);
+    const client = await mqtt.connectAsync(env.host, env.auth);
     client.on('message', (topic, msg) => {
         let promise: Promise<void>;
         if (topic === confTopic) {

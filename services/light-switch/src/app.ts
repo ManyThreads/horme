@@ -11,18 +11,16 @@ type DeviceMessage = Static<typeof DeviceMessage>;
 type ServiceInfo = Static<typeof ServiceInfo>;
 type Value = Static<typeof Value>;
 
-const env = getEnv.fromEnvironment();
+const env = getEnv.readEnvironment('service');
 const logger = util.logger;
 
 main().catch(err => util.abort(err));
 
 async function main() {
-    // TODO: get from environment
-    const [uuid, topic] = process.argv.slice(2);
-    const client = await mqtt.connectAsync(env.MQTT_HOST, env.MQTT_AUTH);
+    const client = await mqtt.connectAsync(env.host, env.auth);
 
-    const confTopic = 'conf/' + topic;
-    const dataTopic = 'data/' + topic;
+    const confTopic = 'conf/' + env.topic;
+    const dataTopic = 'data/' + env.topic;
 
     let isConfigured = false;
 

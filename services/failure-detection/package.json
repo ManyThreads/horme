@@ -1,10 +1,8 @@
 {
-  "name": "horme-ceiling-lamp",
+  "name": "horme-failure-detection",
   "version": "0.0.1",
-  "description": "A horme compliant service simulating the functions of an MQTT connected lamp",
+  "description": "A horme compliant service for simulating failure detection",
   "main": "dist/app.js",
-  "author": "Oliver Giersch",
-  "license": "MIT",
   "scripts": {
     "build": "./node_modules/.bin/tsc -p ."
   },
@@ -12,6 +10,12 @@
     "type": "git",
     "url": "git+https://github.com/ManyThreads/horme.git"
   },
+  "author": "Oliver Giersch",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ManyThreads/horme/issues"
+  },
+  "homepage": "https://github.com/ManyThreads/horme#readme",
   "devDependencies": {
     "@types/node": "^14.14.20",
     "runtypes": "^5.0.1",
