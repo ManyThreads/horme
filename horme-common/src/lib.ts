@@ -17,6 +17,12 @@ export const DeviceMessage = Record({
     timestamp: Number,
 });
 
+/** The format for a service failure message. */
+export const FailureMessage = Record({
+    uuid: String,
+    reason: String,
+});
+
 /** The Service information sent with each configuration message. */
 export const ServiceInfo = Record({
     topic: String,

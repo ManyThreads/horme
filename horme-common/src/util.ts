@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import loglevel from 'loglevel';
+import loglevel, { LogLevelDesc } from 'loglevel';
 
 import { promisify } from 'util';
 
@@ -10,6 +10,7 @@ const logger = Object.freeze({
     warn: (msg: string): void => loglevel.warn(`${timestamp()}: ${chalk.yellow(msg)}`),
     error: (msg: string): void => loglevel.error(`${timestamp()}: ${chalk.red(msg)}`),
     info: (msg: string): void => loglevel.info(`${timestamp()}: ${msg}`),
+    setLogLevel: (level: LogLevelDesc): void => loglevel.setLevel(level)
 });
 
 /** Exported functions and objects. */
