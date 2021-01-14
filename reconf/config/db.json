@@ -1,0 +1,60 @@
+{
+    "services": [
+        {
+            "id": "br_switch_001",
+            "type": "light-switch",
+            "location": "bedroom",
+            "applications": [
+                "presence-detection"
+            ],
+            "priority": 0,
+            "dependsOn": []
+        },
+        {
+            "id": "br_switch_002",
+            "type": "light-switch",
+            "location": "bedroom",
+            "applications": [
+                "presence-detection"
+            ],
+            "priority": 0,
+            "dependsOn": []
+        },
+        {
+            "id": "br_ceiling_lamp_001",
+            "type": "ceiling-lamp",
+            "location": "bedroom",
+            "applications": [
+                "environment"
+            ],
+            "priority": 0,
+            "dependsOn": [
+                "br_switch_001",
+                "br_switch_002"
+            ]
+        },
+        {
+            "id": "br_camera_motion_detect_001",
+            "type": "camera-motion-detection",
+            "location": "bedroom",
+            "applications": [
+                "presence-detection"
+            ],
+            "priority": 100,
+            "dependsOn": []
+        },
+        {
+            "id": "glob_failure_detection_001",
+            "type": "failure-detection",
+            "location": "global",
+            "applications": [
+                "environment"
+            ],
+            "priority": 0,
+            "dependsOn": [
+                "br_switch_001",
+                "br_switch_002"
+            ]
+        }
+    ]
+}
