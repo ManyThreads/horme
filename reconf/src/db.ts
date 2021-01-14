@@ -1,10 +1,6 @@
 import { SelectedService, ServiceSelection, ServiceType, Uuid } from './service';
 
-/********** exports ******************************************************************************/
-
-export default {
-    queryServiceSelection
-};
+export default { queryServiceSelection };
 
 /** Options for specifying which changes need to be made in the database. */
 export interface ConfigUpdates {

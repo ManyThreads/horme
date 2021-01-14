@@ -5,17 +5,12 @@ import chalk from 'chalk';
 import mqtt from 'async-mqtt';
 import { Array as ArrayType, Null, Static, String, Record } from 'runtypes';
 
-import { Subscription } from './common';
-
 import db from './db';
-import { env as getEnv, util } from 'horme-common';
+import { env as getEnv, util, Subscription } from 'horme-common';
 
 /********** exports *******************************************************************************/
 
-export default {
-    configureServices,
-    removeService
-};
+export default { configureServices, removeService };
 
 /********** exported types ************************************************************************/
 
@@ -64,10 +59,10 @@ type Subscription = Static<typeof Subscription>
 
 /********** module state **************************************************************************/
 
-const env = getEnv.fromFile();
+const env = getEnv.readEnvironment('reconf');
 const logger = util.logger;
 /** The MQTT client used by the service configurator to exchange messages. */
-const client = mqtt.connect(env.MQTT_HOST, env.MQTT_AUTH);
+const client = mqtt.connect(env.host, env.auth);
 /** The hashmap containing all active instantiated services. */
 const services: Map<Uuid, Service> = new Map();
 
@@ -209,7 +204,7 @@ function startService(
     const exec = config.cmd.exec.split(' ');
 
     const path = exec.shift();
-    const args = exec.concat([desc.uuid, topic, env.MQTT_HOST]).concat(config.cmd.args);
+    const args = exec.concat([desc.uuid, topic, env.host]).concat(config.cmd.args);
 
     if (path === undefined) {
         throw new Error('invalid command path in config file');

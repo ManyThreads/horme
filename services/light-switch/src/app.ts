@@ -40,6 +40,8 @@ async function main() {
             }
         }
     });
+
+    await client.subscribe(confTopic);
 }
 
 async function simulateSwitchActivity(

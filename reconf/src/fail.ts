@@ -5,11 +5,7 @@ import { env as getEnv, util } from 'horme-common';
 
 import srv from './service';
 
-/********** exports ******************************************************************************/
-
 export default { setupFailureListener };
-
-/********** internal types ************************************************************************/
 
 const FailureMessage = Record({
     uuid: String,
@@ -18,17 +14,13 @@ const FailureMessage = Record({
 
 type FailureMessage = Static<typeof FailureMessage>;
 
-/********** module state **************************************************************************/
-
-const env = getEnv.fromFile();
+const env = getEnv.readEnvironment('reconf');
 const logger = util.logger;
 
-/********** implementation ************************************************************************/
-
-/** initializes the MQTT failure listener client and registers callback */
+/** Initializes the MQTT failure listener client and registers callback. */
 async function setupFailureListener(): Promise<void> {
     // connect MQTT client
-    const client = await mqtt.connectAsync(env.MQTT_HOST, env.MQTT_AUTH);
+    const client = await mqtt.connectAsync(env.host, env.auth);
     // set MQTT client message event listener
     client.on('message', (topic, msg) => {
         onFailure(topic, msg).catch(err => util.abort(err));
@@ -40,7 +32,7 @@ async function setupFailureListener(): Promise<void> {
     ]);
 }
 
-/** initiates MQTT failure handling & reconfiguration */
+/** Initiates MQTT failure handling & reconfiguration. */
 async function onFailure(topic: string, msg: Buffer) {
     logger.debug(`failure message received on topic '${topic}'`);
     const failure = FailureMessage.check(JSON.parse(msg.toString('utf-8')));
