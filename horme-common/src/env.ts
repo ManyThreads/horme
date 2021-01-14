@@ -83,6 +83,7 @@ function parseMqttAuth(): MqttAuth | undefined {
     }
 }
 
+/** Parses environment variables required for services. */
 function parseServiceEnvironment(): { topic: string, uuid: string } {
     const [topic, uuid] = [process.env.HORME_SERVICE_TOPIC, process.env.HORME_SERVICE_UUID];
     if (topic === undefined || uuid === undefined) {
