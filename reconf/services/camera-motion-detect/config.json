@@ -1,7 +1,0 @@
-{
-    "sensor": "Camera",
-    "cmd": {
-        "exec": "/usr/bin/motion_sensor",
-        "args": []
-    }
-}
