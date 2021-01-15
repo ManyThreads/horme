@@ -27,8 +27,8 @@ async function setupFailureListener(): Promise<void> {
     });
 
     await client.subscribe([
-        `fail/${env.APARTMENT}/global`,
-        `fail/${env.APARTMENT}/bedroom/+`,
+        `fail/${process.env.HORME_APARTMENT}/global`,
+        `fail/${process.env.HORME_APARTMENT}/bedroom/+`,
     ]);
 }
 

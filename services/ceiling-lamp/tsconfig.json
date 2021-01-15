@@ -8,11 +8,11 @@
     "strict": true,
     "sourceMap": true,
     "rootDirs": [
-      "src",
+      "src"
     ],
     "lib": [
       "es2015",
       "es2019"
-    ],
+    ]
   }
 }

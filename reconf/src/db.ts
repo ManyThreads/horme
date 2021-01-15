@@ -70,7 +70,7 @@ const failureReasoner: SelectedService = {
 const config: Map<ServiceType, SelectedService[]> = new Map([
     ['ceiling-lamp', [bedroomLamp]],
     ['light-switch', [bedroomSwitch1, bedroomSwitch2]],
-    ['failure-reasoner', [failureReasoner]]
+    //['failure-reasoner', [failureReasoner]]
 ]);
 
 let updateCount = 0;

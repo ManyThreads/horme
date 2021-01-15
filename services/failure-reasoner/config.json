@@ -1,0 +1,8 @@
+{
+  "container": "failure-reasoner",
+  "path": "failure-reasoner",
+  "cmd": "node dist/service.js",
+  "args": [
+    "--color"
+  ]
+}

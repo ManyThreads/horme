@@ -1,0 +1,43 @@
+{
+  "version": "2.0.0",
+  "presentation": {
+    "reveal": "always",
+    "panel": "shared"
+  },
+  "options": {
+    "env": {
+      "ts_js_build_container_cmd": "docker run --env NODE_ENV=development -t --rm -v ${workspaceFolder}:/build -w /build node:15-buster sh -c",
+      "test_compose_files": "-f services/camera-motion-detection/docker-compose.yml -f services/ceiling-lamp/docker-compose.yml -f services/failure-reasoner/docker-compose.yml services/light-switch/docker-compose.yml",
+      "dev_reconf": "-f horme/docker-compose.debug.yml",
+      "prod_reconf": "-f horme/docker-compose.yml",
+    }
+  },
+  "type": "shell",
+  "tasks": [
+    {
+      "label": "common: build",
+      "group": "build",
+      "command": "${ts_js_build_container_cmd} \"cd common && yarn install && yarn build\""
+    },
+    {
+      "label": "reconf: build",
+      "group": "build",
+      "command": "${ts_js_build_container_cmd} \"cd horme && yarn install && yarn build\"",
+      "dependsOn": "common build"
+    },
+    {
+      "label": "docker-compose: dev",
+      "command": "docker-compose ${dev_reconf} build && docker-compose ${dev_reconf} up -d",
+      "dependsOn": "reconf: build"
+    },
+    {
+      "label": "docker-compose: dev clean-up",
+      "command": "docker-compose ${dev_reconf} down -v --remove-orphans"
+    },
+    {
+      "label": "docker-compose: prod",
+      "command": "docker-compose ${prod_reconf} up --build",
+      "dependsOn": "reconf: build"
+    },
+  ]
+}

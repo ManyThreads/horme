@@ -1,0 +1,6 @@
+{
+    "image": "light-switch",
+    "args": [
+        "--color"
+    ]
+}

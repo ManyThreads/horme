@@ -34,48 +34,33 @@ This can be copied as `reconf/.env` and individually adjusted to the specific us
 
 ## 2.1 Starting & Building Containers
 
-First time container instantiation takes some time for downloading, building and
-configuring the images.
+Build reconf:
 
-```bash
-$ docker-compose run --rm reconf
+```shell
+$ docker-compose -f reconf/docker-compose.build.yml up
 ```
 
-## 2.2 Inside `reconf` Container
+Build test services:
 
-The above command starts a `bash` instance within the container inside the
-mounted `horme/` directory.
-The following command installs the required `npm` packages and is only required
-once:
-
-```bash
-$ npm install
+```shell
+$ ./install_services.sh
 ```
 
-Afterwards, type the following command to execute the example application once:
+## 2.2 Run
 
-```bash
-$ npm run app
+```shell
+$ docker-compose -f reconf/docker-compose.yml up --build
 ```
 
-### 2.2.1 Rebuilding `reconf` Container
+## 2.3 Stop
 
-After making changes to the `reconf` container's [`Dockerfile`](.Dockerfile) it
-will likely be necessary to explicitly rebuild the container image:
-
-```bash
-$ docker-compose build reconf
-```
-
-## 2.3 Stopping Auxiliary Containers
-
-```bash
-$ docker-compose down
+```shell
+$ docker-compose -f reconf/docker-compose.yml down -v --remove-orphans
 ```
 
 ## 2.4 Purging all Docker Containers, Images, Volumes and Networks
 
-```bash
+```shell
 $ docker system prune -a --volumes
 ```
 
@@ -83,7 +68,7 @@ $ docker system prune -a --volumes
 
 The HorME configuration & re-configuration system manages the dynamic
 instantiation and communication between between compliant but otherwise
-independent *service* applications.
+independent _service_ applications.
 Services are specified by **configuration files**, which must contain the
 relevant information for instantiating the service as well as their
 dependencies.
@@ -103,12 +88,10 @@ currently includes the following properties:
 
 ```json
 {
-    "cmd": {
-        "exec": "[command or path to executable (string)]",
-        "args": [
-            "[arguments (list of strings, maybe empty)]"
-        ]
-    }
+  "cmd": {
+    "exec": "[command or path to executable (string)]",
+    "args": ["[arguments (list of strings, maybe empty)]"]
+  }
 }
 ```
 
@@ -116,16 +99,16 @@ currently includes the following properties:
 
 ```json
 {
-    "cmd": {
-        "exec": "node dist/services/ceiling-lamp/service.js --color",
-        "args": []
-    }
+  "cmd": {
+    "exec": "node dist/services/ceiling-lamp/service.js --color",
+    "args": []
+  }
 }
 ```
 
 ## 3.2 Program Arguments
 
-Every compliant service must accept and handle an *ordered set* of program
+Every compliant service must accept and handle an _ordered set_ of program
 arguments, which are passed down to it by the configuration system.
 
 1. service UUID: an unique **string** assigned to the service instance
@@ -168,8 +151,8 @@ The format of configuration messages is as follows:
 
 ```json
 {
-    "add": ["[list of subscriptions (strings)]"],
-    "del": ["[list of subscriptions (strings)]"]
+  "add": ["[list of subscriptions (strings)]"],
+  "del": ["[list of subscriptions (strings)]"]
 }
 ```
 
@@ -177,9 +160,9 @@ Each subscription entry has the following structure:
 
 ```json
 {
-    "uuid": "[string]",
-    "type": "[string]",
-    "topic": "[string]"
+  "uuid": "[string]",
+  "type": "[string]",
+  "topic": "[string]"
 }
 ```
 
@@ -250,7 +233,7 @@ As of now, the following service types are modelled:
 4. `ceiling-lamp`
 
 Both `light-switch` and `camera-motion-detect` services can be used to infer
-*presence* in their respective room.
+_presence_ in their respective room.
 `failure-detect` services are exclusively used to detect failure of
 `light-switch` service instances (for now).
 Both `failure-detect` and `ceiling-lamp` depend on any number of `light-switch`
@@ -260,10 +243,10 @@ All services publish their state in messages of the following format:
 
 ```jsonc
 {
-    "uuid": "[string]",
-    "type": "[string]",
-    "value": "[on|off]", // for now there are only binary sensor services
-    "timestamp": "[unsigned long integer]" // UNIX time in seconds
+  "uuid": "[string]",
+  "type": "[string]",
+  "value": "[on|off]", // for now there are only binary sensor services
+  "timestamp": "[unsigned long integer]" // UNIX time in seconds
 }
 ```
 

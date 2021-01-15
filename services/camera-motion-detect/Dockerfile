@@ -13,3 +13,4 @@ RUN apt update \
 COPY --from=builder /usr/bin/motion_sensor /usr/bin/motion_sensor
 USER node
 ENTRYPOINT "/bin/bash"
+CMD "./motion_sensor"

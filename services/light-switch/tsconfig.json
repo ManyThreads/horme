@@ -7,6 +7,7 @@
     "outDir": "dist",
     "strict": true,
     "sourceMap": true,
+<<<<<<< HEAD
     "rootDirs": [
       "src",
     ],
@@ -16,3 +17,9 @@
     ],
   }
 }
+=======
+    "rootDirs": ["src"],
+    "lib": ["es2015", "es2019"]
+  }
+}
+>>>>>>> origin/services_as_docker_services
