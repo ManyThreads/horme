@@ -3,10 +3,9 @@ import fs from 'fs/promises';
 
 import chalk from 'chalk';
 import mqtt from 'async-mqtt';
-import { Array as ArrayType, Null, Static, String, Record } from 'runtypes';
 
 import db from './db';
-import { env as getEnv, util, Subscription } from 'horme-common';
+import { env as getEnv, util, Subscription, ServiceConfig, createServiceConfig} from 'horme-common';
 
 /********** exports *******************************************************************************/
 
@@ -37,25 +36,12 @@ export interface SelectedService extends ServiceDescription {
 
 /********** internal types ************************************************************************/
 
-/** The configuration for starting a service instance of a type. */
-const ServiceConfig = Record({
-    sensor: String.Or(Null),
-    cmd: Record({
-        exec: String,
-        args: ArrayType(String)
-    })
-});
-
-type ServiceConfig = Static<typeof ServiceConfig>
-
 /** The handle to an actively running service instance. */
 interface Service extends ServiceDescription {
     topic: string
     proc: ServiceProcess
     depends: Service[]
 }
-
-type Subscription = Static<typeof Subscription>
 
 /********** module state **************************************************************************/
 
@@ -115,8 +101,10 @@ async function instantiateServices(
 ): Promise<[Service, Uuid[]][]> {
     const promises = await Promise.all(selection.map(async ([type, selected]) => {
         const file = await fs.readFile(`./services/${type}/config.json`);
-        const config = ServiceConfig.check(JSON.parse(file.toString()));
-
+        const config = createServiceConfig(JSON.parse(file.toString()));
+        if (!config) {
+            return [];
+        }
         return await Promise.all(Array.from(selected.map(sel => instantiateService(sel, config))));
     }));
 
