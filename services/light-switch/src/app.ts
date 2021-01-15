@@ -2,14 +2,8 @@ import mqtt, { AsyncMqttClient } from 'async-mqtt';
 import {
     env as getEnv,
     util,
-    ConfigMessage, DeviceMessage, ServiceInfo, Value
+    DeviceMessage, ServiceInfo, Value, createConfigMessage
 } from 'horme-common';
-import { Static } from 'runtypes';
-
-type ConfigMessage = Static<typeof ConfigMessage>;
-type DeviceMessage = Static<typeof DeviceMessage>;
-type ServiceInfo = Static<typeof ServiceInfo>;
-type Value = Static<typeof Value>;
 
 const env = getEnv.readEnvironment('service');
 const logger = util.logger;
@@ -27,7 +21,11 @@ async function main() {
     client.on('message', (topic, payload) => {
         if (topic === confTopic) {
             logger.debug(`config message received on topic '${topic}'`);
-            const msg = ConfigMessage.check(JSON.parse(payload.toString()));
+            const msg = createConfigMessage(JSON.parse(payload.toString()));
+            if (!msg) {
+                logger.info("Light-switch received malformed config message.");
+                return;
+            }
             const serviceInfo = msg.info;
 
             if (!isConfigured) {

@@ -2,13 +2,8 @@ import mqtt, { AsyncMqttClient } from 'async-mqtt';
 import {
     env as getEnv,
     util,
-    ConfigMessage, DeviceMessage, FailureMessage, Value
+    FailureMessage, Value, createConfigMessage, createDeviceMessage
 } from 'horme-common';
-import { Static } from 'runtypes';
-
-type DeviceMessage = Static<typeof DeviceMessage>;
-type FailureMessage = Static<typeof FailureMessage>;
-type Value = Static<typeof Value>;
 
 type ServiceState = {
     client: AsyncMqttClient,
@@ -50,7 +45,11 @@ async function main() {
 
 async function handleConfigMessage(topic: string, payload: string) {
     logger.debug(`config message received on topic '${topic}'`);
-    const msg = ConfigMessage.check(JSON.parse(payload));
+    const msg = createConfigMessage(JSON.parse(payload));
+    if (!msg) {
+        logger.info("Failure-reasoner received malformed config message.");
+        return;
+    }
 
     const add = msg.add.map(sub => 'data/' + sub.topic);
     const del = msg.del.map(sub => 'data/' + sub.topic);
@@ -70,7 +69,11 @@ async function handleConfigMessage(topic: string, payload: string) {
 
 async function handleDeviceMessage(topic: string, payload: string) {
     logger.debug(`device message received on topic '${topic}'`);
-    const msg = DeviceMessage.check(JSON.parse(payload));
+    const msg = createDeviceMessage(JSON.parse(payload));
+    if (!msg) {
+        logger.info("Failure-reasoner received malformed device message.");
+        return;
+    }
 
     const prev = state.map.get(msg.uuid);
     state.map.set(msg.uuid, msg.value);

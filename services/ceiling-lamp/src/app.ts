@@ -2,12 +2,8 @@ import mqtt, { AsyncMqttClient } from 'async-mqtt';
 import {
     env as getEnv,
     util,
-    ConfigMessage, DeviceMessage, ServiceInfo
+    DeviceMessage, ServiceInfo, createConfigMessage, createDeviceMessage
 } from 'horme-common';
-import { Static } from 'runtypes';
-
-type DeviceMessage = Static<typeof DeviceMessage>;
-type ServiceInfo = Static<typeof ServiceInfo>;
 
 // lazily initialized with first configuration message
 let serviceInfo: ServiceInfo;
@@ -38,7 +34,12 @@ async function main() {
 async function handleConfigMessage(client: AsyncMqttClient, topic: string, msg: string) {
     logger.debug(`config message received on topic '${topic}'`);
 
-    const config = ConfigMessage.check(JSON.parse(msg));
+    const config = createConfigMessage(JSON.parse(msg));
+    if (!config) {
+        logger.info("Ceiling-lamp received malformed config message.");
+        return;
+    }
+
     if (serviceInfo === undefined) {
         serviceInfo = config.info;
     }
@@ -75,7 +76,12 @@ async function handleDataMessage(
         throw new Error('service info not initialized');
     }
 
-    const device = DeviceMessage.check(JSON.parse(msg));
+    const device = createDeviceMessage(JSON.parse(msg));
+    if (!device) {
+        logger.info("Ceiling-lamp received malformed device message.");
+        return;
+    }
+
     const response: DeviceMessage = {
         ...serviceInfo,
         value: device.value,
