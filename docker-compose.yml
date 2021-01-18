@@ -18,6 +18,12 @@ services:
       - ./dbms/logs:/logs
     environment:
       - NEO4J_AUTH=neo4j/admin
+      - NEO4J_dbms_default__advertised__address=neo4j
+      - NEO4J_dbms_connector_bolt_listen__address=:7687
+      - NEO4J_dbms_connector_bolt_advertised__address=:7687
+      - NEO4J_dbms_ssl_policy_bolt_client__auth=NONE
+      - NEO4J_dbms_ssl_policy_https_client__auth=NONE
+      - NEO4J_dbms_default__listen__address=0.0.0.0
     ports:
       - 7474:7474
       - 7687:7687
