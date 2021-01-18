@@ -18,6 +18,8 @@ let env: Env;
 export type Env = {
     APARTMENT: string
     MQTT_HOST: string
+    NEO4J_USER: string,
+    NEO4J_PASS: string
     MQTT_AUTH: Auth | undefined
     LOG_LEVEL: LogLevelDesc
 }
@@ -49,6 +51,8 @@ function initEnv(): Env {
     return {
         APARTMENT: util.expect(process.env.APARTMENT, '.env file must specify "APARTMENT"'),
         MQTT_HOST: util.expect(process.env.MQTT_HOST, '.env file must specify "MQTT_HOST"'),
+        NEO4J_USER: util.expect(process.env.NEO4J_USER, '.env file must specify "NEO4J_USER"'),
+        NEO4J_PASS: util.expect(process.env.NEO4J_PASS, '.env file must specify "NEO4J_PASS"'),
         MQTT_AUTH: parseMqttAuth(),
         LOG_LEVEL: parseLogLevel(),
     };
