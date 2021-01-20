@@ -11,7 +11,7 @@ export async function testfunc() {
     var a = `CREATE (n: Person {name: '${name}' }) RETURN n`;
     await noReturnQuery(a);
     var b: Promise<string> = returnQuery(a);
-    let me = await b
+    let me: string = await b
     logger.info(me)
 }
 
@@ -21,6 +21,16 @@ export async function noReturnQuery(n :string){
   var session = driver.session()
   logger.info(`Execute No-Return Query: '${n}'.`);
   await session.run(n)
+  session.close();
+  await driver.close();
+}
+
+//resets the whole database
+export async function resetDatabase(){
+  var driver = neo4j.driver('bolt://neo4j:7687', neo4j.auth.basic(env.NEO4J_USER, env.NEO4J_PASS));
+  var session = driver.session()
+  logger.info(`Reset Neoj Database`);
+  await session.run("MATCH (n) DETACH DELETE n");
   session.close();
   await driver.close();
 }
