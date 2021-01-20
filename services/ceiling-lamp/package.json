@@ -19,6 +19,6 @@
   },
   "dependencies": {
     "async-mqtt": "^2.6.1",
-    "horme-common": "file:../../horme-common"
+    "horme-common": "file:/usr/lib/horme-common"
   }
 }

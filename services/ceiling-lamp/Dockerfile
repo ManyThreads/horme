@@ -1,11 +1,12 @@
-FROM node:15-buster as builder
+FROM horme-service-builder as builder
 
 ENV NODE_ENV development
 
+WORKDIR /usr/src/ceiling-lamp
 COPY . .
-WORKDIR /services/ceiling-lamp
 RUN yarn install && yarn build
 
 FROM node:15-buster
-COPY --from=builder /services/ceiling-lamp /usr/src/app
-CMD ["node" "/usr/src/app/dist/app.js"]
+WORKDIR /usr/bin/ceiling-lamp
+COPY --from=builder /usr/src/ceiling-lamp .
+ENTRYPOINT ["node", "dist/app.js"]

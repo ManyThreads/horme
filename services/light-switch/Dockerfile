@@ -1,11 +1,12 @@
-FROM node:15-buster as builder
+FROM horme-service-builder as builder
 
 ENV NODE_ENV development
 
+WORKDIR /usr/src/light-switch
 COPY . .
-WORKDIR /services/light-switch
 RUN yarn install && yarn build
 
 FROM node:15-buster
-COPY --from=builder /services/light-switch /usr/src/app
-CMD ["node" "/usr/src/app/dist/app.js"]
+WORKDIR /usr/bin/light-switch
+COPY --from=builder /usr/src/light-switch .
+ENTRYPOINT ["node", "dist/app.js"]
