@@ -66,7 +66,7 @@ function parseLogLevel(): LogLevelDesc {
 
 /** Parses the MQTT host parameter string. */
 function parseMqttHost(): string {
-    return util.expect(process.env.HORME_MQTT_HOST, 'env must specify "HORME_MQTT_HOST');
+    return util.expect(process.env.HORME_MQTT_HOST, 'env must specify "HORME_MQTT_HOST"');
 }
 
 /** Parses MQTT authentication, if specified. */
