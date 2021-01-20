@@ -7,12 +7,14 @@ import srv from './service';
 const env = getEnv.readEnvironment('reconf');
 const logger = util.logger;
 
-process.stdin.resume();
-
-process.on('SIGTERM', () => {
+const cleanup = () => {
     srv.cleanUp();
     process.exit();
-});
+};
+
+process.stdin.resume();
+process.on('SIGTERM', cleanup);
+process.on('SIGINT', cleanup);
 
 main().catch(err => util.abort(err));
 

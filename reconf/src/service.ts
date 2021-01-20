@@ -100,6 +100,7 @@ async function removeService(uuid: string): Promise<void> {
 }
 
 function cleanUp(): void {
+    logger.info('stopping all docker containers.');
     execSync(`docker stop -t 1 $(docker ps -q -f "name=${serviceNamePrefix}")`);
     execSync(`docker rm $(docker ps -a -q -f "name=${serviceNamePrefix}")`);
 }
@@ -196,20 +197,17 @@ function startService(
     config: ServiceConfig,
     topic: string
 ): ServiceProcess {
-    const serviceEnv = [
-        'HORME_MQTT_HOST=' + env.host,
-        'HORME_MQTT_USER=' + env.auth?.username,
-        'HORME_MQTT_PASS=' + env.auth?.pass,
-        'HORME_TOPIC=' + topic,
-        'HORME_UUID=' + desc.uuid,
-    ];
-
     const cmd = [
-        'run', '-t',
+        'run', '-t', '--rm',
         '--name', serviceNamePrefix + desc.uuid,
-        '--env', serviceEnv.join(' '),
+        '-e', 'HORME_MQTT_HOST=' + env.host,
+        '-e', 'HORME_SERVICE_TOPIC=' + topic,
+        '-e', 'HORME_SERVICE_UUID=' + desc.uuid,
+        '--network', 'horme_default',
         config.image, config.args.join(' ')
     ];
+
+    console.log('docker ' + cmd.join(' '));
 
     const instance = spawn('docker', cmd);
     instance.stdout.on('data', (data: Buffer) => {

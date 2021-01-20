@@ -48,8 +48,16 @@ $ ./install_services.sh
 
 ## 2.2 Run
 
+To build the `reconf` app, its container and run the container:
+
 ```shell
-$ docker-compose -f reconf/docker-compose.yml up --build
+$ docker-compose -f docker-compose.production.yml up --build --remove-orphans reconf
+```
+
+To start the container into an interactive tty (useful for testing code changes quickly):
+
+```shell
+$ docker-compose run --rm reconf
 ```
 
 ## 2.3 Stop
@@ -62,6 +70,12 @@ $ docker-compose -f reconf/docker-compose.yml down -v --remove-orphans
 
 ```shell
 $ docker system prune -a --volumes
+```
+
+## 2.5 Viewing Logs of Auxilliary Containers
+
+```shell
+$ docker-compose logs [mosquitto|neo4j|...]
 ```
 
 # 3. Service Contracts (Compliant Service Specification)
