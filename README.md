@@ -43,7 +43,7 @@ $ docker-compose -f reconf/docker-compose.build.yml up
 Build test services:
 
 ```shell
-$ ./install_services.sh
+$ ./build_images.sh
 ```
 
 ## 2.2 Run
