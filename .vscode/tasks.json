@@ -6,10 +6,8 @@
   },
   "options": {
     "env": {
-      "ts_js_build_container_cmd": "docker run --env NODE_ENV=development -t --rm -v ${workspaceFolder}:/build -w /build node:15-buster sh -c",
-      "test_compose_files": "-f services/camera-motion-detection/docker-compose.yml -f services/ceiling-lamp/docker-compose.yml -f services/failure-reasoner/docker-compose.yml services/light-switch/docker-compose.yml",
-      "dev_reconf": "-f horme/docker-compose.debug.yml",
-      "prod_reconf": "-f horme/docker-compose.yml",
+      "horme_dev": "docker-compose.debug.yml",
+      "horme_prod": "docker-compose.production.yml",
     }
   },
   "type": "shell",
@@ -17,27 +15,37 @@
     {
       "label": "common: build",
       "group": "build",
-      "command": "${ts_js_build_container_cmd} \"cd common && yarn install && yarn build\""
+      "command": "docker build -t horme-service-builder ./horme-common/"
+    },
+    {
+      "label": "services: build",
+      "group": "build",
+      "command": "./build_images.sh",
+      "dependsOn": ["common: build"]
     },
     {
       "label": "reconf: build",
       "group": "build",
-      "command": "${ts_js_build_container_cmd} \"cd horme && yarn install && yarn build\"",
-      "dependsOn": "common build"
+      "command": "docker build -t reconf ./reconf/",
+      "dependsOn": ["common: build", "services: build"]
     },
     {
       "label": "docker-compose: dev",
-      "command": "docker-compose ${dev_reconf} build && docker-compose ${dev_reconf} up -d",
+      "command": "docker-compose -f ${horme_dev} up --build",
       "dependsOn": "reconf: build"
     },
     {
       "label": "docker-compose: dev clean-up",
-      "command": "docker-compose ${dev_reconf} down -v --remove-orphans"
+      "command": "docker-compose -f ${horme_dev} down -v --remove-orphans"
     },
     {
       "label": "docker-compose: prod",
-      "command": "docker-compose ${prod_reconf} up --build",
+      "command": "docker-compose -f ${horme_prod} up --build",
       "dependsOn": "reconf: build"
+    },
+    {
+      "label": "docker-compose: prod clean-up",
+      "command": "docker-compose -f ${horme_prod} down -v --remove-orphans"
     },
   ]
 }
