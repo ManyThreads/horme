@@ -30,10 +30,34 @@ export async function returnQuery(n :string): Promise<string> {
   //driver.close()});
   return entireResult
 }
-var i = true;
+
+async function initAllDependencies(config: [string, SelectedService[]][]) {
+  for (const element of config) {
+    for (const elem2 of element[1]) {
+      for (const deps of elem2.depends) {
+
+        //if dependency dev exists
+        var dev: string = 'MATCH (n) WHERE n.uuid = \'' + deps + '\' RETURN n'
+        var res = await returnQuery(dev)
+        if (res != "") {
+
+          //check if rel already exists
+          var checkrel: string = 'MATCH (n)-[DEPENDS_ON]->(m) WHERE n.uuid = \'' + elem2.uuid + '\' AND m.uuid = \'' + deps + '\' RETURN n' 
+          var result = await returnQuery(checkrel)
+          if (result == "") {
+
+            //create rel
+            var newrel: string = 'MATCH (n), (m) WHERE n.uuid = \'' + elem2.uuid + '\' AND m.uuid = \'' + deps + '\' CREATE (n)-[r:DEPENDS_ON]->(m)' 
+            await returnQuery(newrel);
+          }
+        }
+      }
+    }   
+  }
+}
+
 export async function addConfigToDB(config: [string, SelectedService[]][]) {
-  //if (i) {
-    i = false
+
     for (const element of config) {
           for (const elem2 of element[1]) {
 
@@ -64,5 +88,5 @@ export async function addConfigToDB(config: [string, SelectedService[]][]) {
               }
           }
         }
-  //}
-}
+    initAllDependencies(config)
+    }
