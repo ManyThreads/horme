@@ -4,13 +4,13 @@ services:
   reconf:
     build:
       context: ./reconf/
-      dockerfile: Dockerfile.production
+      dockerfile: Dockerfile
+    init: true
     environment:
       NODE_ENV: production
     volumes:
-      - ./reconf:/usr/bin/reconf
       - /var/run/docker.sock:/var/run/docker.sock
-    working_dir: /usr/bin/reconf
+    command: bash -c "node dist/app.js"
     depends_on:
       - neo4j
       - mosquitto
