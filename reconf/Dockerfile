@@ -1,3 +1,9 @@
 FROM horme-service-builder as builder
+WORKDIR /usr/src/reconf
+COPY . .
+RUN yarn install && yarn build
+
+FROM node:15-buster
 RUN apt-get update && apt-get install -y docker.io
-ENTRYPOINT ["/bin/bash"]
+WORKDIR /usr/bin/reconf
+COPY --from=builder /usr/src/reconf .
