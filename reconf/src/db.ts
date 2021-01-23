@@ -1,3 +1,4 @@
+import { addConfigToDB, resetDatabase } from './neo4j';
 import { SelectedService, ServiceSelection, ServiceType, Uuid } from './service';
 
 /********** exports ******************************************************************************/
@@ -33,6 +34,8 @@ async function queryServiceSelection(
             throw new Error('exceeded bounds of static reconfiguration scenario');
         }
     }
+    
+    await addConfigToDB(Array.from(config));
 
     return Array.from(config);
 }

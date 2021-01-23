@@ -142,6 +142,9 @@ async function instantiateService(
     const service = services.get(desc.uuid);
     if (service === undefined) {
         const topic = buildTopic(desc);
+
+        
+
         const proc = startService(desc, config, topic);
 
         const entry: Service = {
