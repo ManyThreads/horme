@@ -11,8 +11,9 @@ services:
     ports:
       - 9229:9229
     volumes:
+      - ./reconf:/usr/bin/reconf/project
       - /var/run/docker.sock:/var/run/docker.sock
-    command: bash -c "node --inspect=0.0.0.0:9229 dist/app.js"
+    command: ["project/wait-for.sh", "node", "--inspect=0.0.0.0:9229", "dist/app.js"]
     # command: ["node", "--inspect-brk=0.0.0.0:9229", "dist/app.js"]
     working_dir: /usr/bin/reconf
     depends_on:

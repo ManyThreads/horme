@@ -9,8 +9,9 @@ services:
     environment:
       NODE_ENV: production
     volumes:
+      - ./reconf:/usr/bin/reconf/project
       - /var/run/docker.sock:/var/run/docker.sock
-    command: bash -c "node dist/app.js"
+    command: ["project/wait-for.sh", "node", "dist/app.js"]
     depends_on:
       - neo4j
       - mosquitto

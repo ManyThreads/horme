@@ -4,6 +4,10 @@ COPY . .
 RUN yarn install && yarn build
 
 FROM node:15-buster
-RUN apt-get update && apt-get install -y docker.io
+RUN apt-get update && \
+    apt-get install -y \
+    docker.io\
+    wait-for-it
 WORKDIR /usr/bin/reconf
 COPY --from=builder /usr/src/reconf .
+ENTRYPOINT ["/bin/bash"]
