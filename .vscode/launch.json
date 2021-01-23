@@ -27,6 +27,7 @@
       "request": "launch",
       "type": "pwa-node",
       "preLaunchTask": "docker-compose: prod",
+      "postDebugTask": "docker-compose: prod clean-up"
     }
   ]
 }
