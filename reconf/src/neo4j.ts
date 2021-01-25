@@ -7,18 +7,19 @@ const env = getEnv.fromFile();
 const logger = util.logger;
 const driver = neo4j.driver('bolt://neo4j:7687', neo4j.auth.basic(env.NEO4J_USER, env.NEO4J_PASS));
 
-//resets the whole database
+//reset whole database
 export async function resetDatabase(){
   var session = driver.session()
-  logger.info(`Reset Neoj Database`);
-  await session.run("MATCH (n) DETACH DELETE n");
-  session.close();
+  logger.info(`Reset Neoj database`);
+  await session.run("MATCH (n) DETACH DELETE n")
+  .then(() => {
+    session.close()});
+  return
 }
 
-//executes query with return
+//execute query with return
 export async function returnQuery(n :string): Promise<string> {
   var session = driver.session()
-  //logger.info(`[Neo4j] '${n}'.`);
   var entireResult = ''
   await session.run(n).then(result => {
     return result.records.map(record => { // Iterate through records
@@ -27,11 +28,15 @@ export async function returnQuery(n :string): Promise<string> {
 })
 .then(() => {
   session.close()});
-  //driver.close()});
   return entireResult
 }
 
-async function initAllDependencies(config: [string, SelectedService[]][]) {
+//add all dependencies from services to other services
+async function updateAllDependencies(config: [string, SelectedService[]][]) {
+
+  //Reset all current dependencies, as device dependencies may change during reconfiguration
+  await resetAllDependencies()
+
   for (const element of config) {
     for (const elem2 of element[1]) {
       for (const deps of elem2.depends) {
@@ -41,12 +46,12 @@ async function initAllDependencies(config: [string, SelectedService[]][]) {
         var res = await returnQuery(dev)
         if (res != "") {
 
-          //check if rel already exists
+          //check if relation already exists
           var checkrel: string = 'MATCH (n)-[DEPENDS_ON]->(m) WHERE n.uuid = \'' + elem2.uuid + '\' AND m.uuid = \'' + deps + '\' RETURN n' 
           var result = await returnQuery(checkrel)
           if (result == "") {
 
-            //create rel
+            //create relation
             var newrel: string = 'MATCH (n), (m) WHERE n.uuid = \'' + elem2.uuid + '\' AND m.uuid = \'' + deps + '\' CREATE (n)-[r:DEPENDS_ON]->(m)' 
             await returnQuery(newrel);
           }
@@ -56,12 +61,22 @@ async function initAllDependencies(config: [string, SelectedService[]][]) {
   }
 }
 
+//Reset all current dependencies
+async function resetAllDependencies() {
+  var session = driver.session()
+  logger.info(`Reset all Depends_Of relation`);
+  await session.run("MATCH ()-[r:DEPENDS_ON]-() DELETE r")
+  .then(() => {
+    session.close()});
+  return
+}
+
 export async function addConfigToDB(config: [string, SelectedService[]][]) {
 
     for (const element of config) {
           for (const elem2 of element[1]) {
 
-              //Walkaround for '-' in typename
+              //Walkaround for illegal '-' in typename
               var type = elem2.type
               type = type.split('-').join('_')
 
@@ -88,5 +103,7 @@ export async function addConfigToDB(config: [string, SelectedService[]][]) {
               }
           }
         }
-    initAllDependencies(config)
+
+        //Update current dependencies (based on config) after all nodes are created
+        await updateAllDependencies(config)
     }
