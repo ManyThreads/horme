@@ -2,6 +2,7 @@ version: "3.8"
 
 services:
   reconf:
+    init: true
     image: reconf
     build:
       context: ./reconf/
