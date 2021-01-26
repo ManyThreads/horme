@@ -19,6 +19,9 @@ const logger = util.logger;
 main().catch(err => util.abort(err));
 
 async function main() {
+    logger.setLogLevel(env.logLevel);
+    logger.info('service started on topic ' + env.topic);
+
     const confTopic = 'conf/' + env.topic;
     const dataTopic = 'data/' + env.topic;
 
@@ -33,27 +36,32 @@ async function main() {
 
         promise.catch(err => util.abort(err));
     });
+
+    await client.subscribe(confTopic);
+    logger.debug('subscribed to topic(s): ' + confTopic);
 }
 
 async function handleConfigMessage(client: AsyncMqttClient, topic: string, msg: string) {
-    logger.debug(`config message received on topic '${topic}'`);
-
+    logger.debug(`config message received on topic '${topic}', payload:\n\t${msg}`);
     const config = ConfigMessage.check(JSON.parse(msg));
     if (serviceInfo === undefined) {
+        logger.info('initial configuration received');
         serviceInfo = config.info;
     }
 
-    const add = config.add.map(sub => sub.topic);
-    const del = config.del.map(sub => sub.topic);
+    const add = config.add.map(sub => 'data/' + sub.topic);
+    const del = config.del.map(sub => 'data/' + sub.topic);
 
     if (add.length > 0) {
         subCount += add.length;
         await client.subscribe(add);
+        logger.debug('subscribed to topic(s): ' + add.join(', '));
     }
 
     if (del.length > 0) {
         subCount -= del.length;
         await client.subscribe(del);
+        logger.debug('unsubscribed from topic(s): ' + del.join(', '));
     }
 
     logger.info(`(re-)configuration complete, ${add.length} added, ${del.length} removed`);

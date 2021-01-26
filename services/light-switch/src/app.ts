@@ -17,6 +17,8 @@ const logger = util.logger;
 main().catch(err => util.abort(err));
 
 async function main() {
+    logger.setLogLevel(env.logLevel);
+    logger.info('service started on topic ' + env.topic);
     const client = await mqtt.connectAsync(env.host, env.auth);
 
     const confTopic = 'conf/' + env.topic;
@@ -31,6 +33,7 @@ async function main() {
             const serviceInfo = msg.info;
 
             if (!isConfigured) {
+                logger.info('initial configuration received');
                 isConfigured = true;
                 simulateSwitchActivity(
                     client,
@@ -42,6 +45,7 @@ async function main() {
     });
 
     await client.subscribe(confTopic);
+    logger.debug('subscribed to topic(s): ' + confTopic);
 }
 
 async function simulateSwitchActivity(
@@ -61,7 +65,7 @@ async function simulateSwitchActivity(
     };
 
     while (true) {
-        const delay = 1000 + Math.random() * 10000;
+        const delay = 10000 + Math.random() * 100000;
         await util.timeout(delay);
 
         const simulateError = Math.random() <= 0.01;
