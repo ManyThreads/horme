@@ -5,21 +5,16 @@ import { promisify } from 'util';
 
 /** Logging function wrappers with timestamps for `loglevel`. */
 const logger = Object.freeze({
-    trace: (msg: string): void => loglevel.trace(`${timestamp()}: ${msg}`),
-    debug: (msg: string): void => loglevel.debug(`${timestamp()}: ${msg}`),
-    warn: (msg: string): void => loglevel.warn(`${timestamp()}: ${chalk.yellow(msg)}`),
-    error: (msg: string): void => loglevel.error(`${timestamp()}: ${chalk.red(msg)}`),
-    info: (msg: string): void => loglevel.info(`${timestamp()}: ${msg}`),
+    trace: (...msg: any[]): void => loglevel.trace(`${timestamp()}: ${msg}`),
+    debug: (...msg: any[]): void => loglevel.debug(`${timestamp()}: ${msg}`),
+    warn: (...msg: any[]): void => loglevel.warn(`${timestamp()}: ${chalk.yellow(msg)}`),
+    error: (...msg: any[]): void => loglevel.error(`${timestamp()}: ${chalk.red(msg)}`),
+    info: (...msg: any[]): void => loglevel.info(`${timestamp()}: ${msg}`),
     setLogLevel: (level: LogLevelDesc): void => loglevel.setLevel(level)
 });
 
 /** Exported functions and objects. */
-export default {
-    abort,
-    expect,
-    logger,
-    timeout,
-};
+export default { abort, expect, logger, timeout };
 
 /** An asynchronous variant of setTimeout. */
 async function timeout(ms: number): Promise<void> {
