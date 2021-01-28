@@ -2,7 +2,7 @@
     "name": "horme",
     "version": "0.0.1",
     "description": "horme configuration and re-configuration",
-    "bin": "dist/src/app.js",
+    "bin": "dist/app.js",
     "license": "MIT",
     "repository": "https://github.com/ManyThreads/horme",
     "scripts": {
