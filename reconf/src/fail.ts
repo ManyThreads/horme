@@ -9,7 +9,7 @@ export default { setupFailureListener };
 
 const FailureMessage = Record({
     uuid: String,
-    reason: String
+    reason: String,
 });
 
 type FailureMessage = Static<typeof FailureMessage>;
@@ -23,7 +23,7 @@ async function setupFailureListener(): Promise<void> {
     const client = await mqtt.connectAsync(env.host, env.auth);
     // set MQTT client message event listener
     client.on('message', (topic, msg) => {
-        onFailure(topic, msg).catch(err => util.abort(err));
+        onFailure(topic, msg).catch((err) => util.abort(err));
     });
 
     await client.subscribe([

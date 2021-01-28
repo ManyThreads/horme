@@ -16,7 +16,7 @@ process.stdin.resume();
 process.on('SIGTERM', cleanup);
 process.on('SIGINT', cleanup);
 
-main().catch(err => util.abort(err));
+main().catch((err) => util.abort(err));
 
 async function main() {
     logger.setLogLevel(env.logLevel);
