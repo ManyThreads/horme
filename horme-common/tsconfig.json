@@ -4,7 +4,7 @@
         "esModuleInterop": true,
         "target": "es6",
         "moduleResolution": "node",
-        "outDir": "dist",
+        "outDir": "lib",
         "strict": true,
         "sourceMap": true,
         "rootDirs": [
@@ -16,6 +16,6 @@
         ]
     },
     "exclude": [
-        "./dist/**/*"
+        "./lib/**/*"
     ]
 }
