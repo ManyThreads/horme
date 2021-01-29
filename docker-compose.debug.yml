@@ -4,18 +4,18 @@ services:
     reconf:
         init: true
         build:
-            context: ./reconf/
-            dockerfile: Dockerfile
+            context: .
+            dockerfile: reconf/Dockerfile
         environment:
             NODE_ENV: development
         ports:
             - 9229:9229
         volumes:
-            - ./reconf:/usr/bin/reconf
+            - .:/usr/local/bin/horme
             - /var/run/docker.sock:/var/run/docker.sock
-        command: ['--inspect=0.0.0.0:9229']
-        # command: ["node", "--inspect-brk=0.0.0.0:9229", "dist/app.js"]
-        working_dir: /usr/bin/reconf
+        command: ['node', '--inspect=0.0.0.0:9229', 'dist/app.js']
+        # command: ['bash', '-c', 'node --inspect-brk=0.0.0.0:9229', 'dist/app.js']
+        working_dir: /usr/local/bin/horme/reconf
         depends_on:
             - neo4j
             - mosquitto
