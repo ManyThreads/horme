@@ -34,12 +34,6 @@ This can be copied as `reconf/.env` and individually adjusted to the specific us
 
 ## 2.1 Starting & Building Containers
 
-Build reconf:
-
-```shell
-$ docker-compose -f reconf/docker-compose.build.yml up
-```
-
 Build test services:
 
 ```shell
@@ -53,6 +47,7 @@ To build the `reconf` app, its container and run the container:
 ```shell
 $ docker-compose -f docker-compose.production.yml up --build --remove-orphans reconf
 ```
+
 
 To start the container into an interactive tty (useful for testing code changes quickly):
 
