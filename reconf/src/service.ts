@@ -3,10 +3,9 @@ import fs from 'fs/promises';
 
 import chalk from 'chalk';
 import mqtt from 'async-mqtt';
-import { Array as ArrayType, Static, String, Record } from 'runtypes';
 
 import db, { ServiceEntry, ServiceSelection } from './db';
-import { env as getEnv, util, ConfigMessage, Subscription, ServiceInfo } from 'horme-common';
+import { env as getEnv, util, ConfigMessage, Subscription, ServiceConfig, ServiceInfo, parseAs } from 'horme-common';
 
 export default { cleanUp, configureServices, removeService };
 
@@ -14,11 +13,6 @@ export default { cleanUp, configureServices, removeService };
 export type Uuid = string;
 /** The string describing the type of a service. */
 export type ServiceType = string;
-
-type ConfigMessage = Static<typeof ConfigMessage>;
-type ServiceConfig = Static<typeof ServiceConfig>;
-type ServiceInfo = Static<typeof ServiceInfo>;
-type Subscription = Static<typeof Subscription>;
 
 /** The process handle for a service */
 type ServiceProcess = ChildProcessWithoutNullStreams;
@@ -29,13 +23,6 @@ type ServiceHandle = {
     proc: ServiceProcess;
     depends: ServiceHandle[];
 };
-
-/** The configuration for starting a service instance of a type. */
-const ServiceConfig = Record({
-    //sensor: String.Or(Null),
-    image: String,
-    args: ArrayType(String),
-});
 
 const env = getEnv.readEnvironment('reconf');
 const logger = util.logger;
@@ -99,16 +86,12 @@ function cleanUp(): void {
 async function instantiateServices(
     selection: ServiceSelection
 ): Promise<[ServiceHandle, Uuid[]][]> {
-    const promises = await Promise.all(
-        selection.map(async ([type, entries]) => {
-            const file = await fs.readFile(`./config/services/${type}.json`);
-            const config = ServiceConfig.check(JSON.parse(file.toString()));
-
-            return await Promise.all(
-                Array.from(entries.map((entry) => instantiateService(entry, config)))
-            );
-        })
-    );
+    const promises = await Promise.all(selection.map(async ([type, selected]) => {
+        const file = await fs.readFile(`./config/services/${type}.json`);
+        const config = parseAs(ServiceConfig, JSON.parse(file.toString()));
+        if (!config) return [];
+        return await Promise.all(Array.from(selected.map(sel => instantiateService(sel, config))));
+    }));
 
     return promises.flat();
 }
