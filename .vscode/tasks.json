@@ -21,18 +21,11 @@
       "label": "services: build",
       "group": "build",
       "command": "./build_images.sh",
-      "dependsOn": ["common: build"]
-    },
-    {
-      "label": "reconf: build",
-      "group": "build",
-      "command": "docker build -t reconf ./reconf/",
-      "dependsOn": ["common: build", "services: build"]
     },
     {
       "label": "docker-compose: dev",
       "command": "docker-compose -f ${horme_dev} up --build",
-      "dependsOn": "reconf: build"
+      "dependsOn": "services: build"
     },
     {
       "label": "docker-compose: dev clean-up",
@@ -41,7 +34,7 @@
     {
       "label": "docker-compose: prod",
       "command": "docker-compose -f ${horme_prod} up --build",
-      "dependsOn": "reconf: build"
+      "dependsOn": "services: build"
     },
     {
       "label": "docker-compose: prod clean-up",

@@ -9,4 +9,4 @@ FROM node:15-buster
 ENV NODE_ENV=production
 RUN apt-get update && apt-get install -y docker.io
 WORKDIR /usr/local/bin/horme/reconf
-COPY --from=builder /usr/local/src/horme ..
+COPY --from=builder /usr/local/src/horme/reconf .

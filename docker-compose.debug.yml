@@ -5,17 +5,15 @@ services:
         init: true
         build:
             context: .
-            dockerfile: reconf/Dockerfile
+            dockerfile: reconf/Dockerfile.production
         environment:
             NODE_ENV: development
         ports:
             - 9229:9229
         volumes:
-            - .:/usr/local/bin/horme
             - /var/run/docker.sock:/var/run/docker.sock
-        command: ['node', '--inspect=0.0.0.0:9229', 'dist/app.js']
+        command: [node, --inspect=0.0.0.0:9229, dist/app.js]
         # command: ['bash', '-c', 'node --inspect-brk=0.0.0.0:9229', 'dist/app.js']
-        working_dir: /usr/local/bin/horme/reconf
         depends_on:
             - neo4j
             - mosquitto
