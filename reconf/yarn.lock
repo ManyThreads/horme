@@ -537,9 +537,12 @@ help-me@^1.0.1:
     through2 "^2.0.1"
     xtend "^4.0.0"
 
-"horme-common@link:../horme-common":
-  version "0.0.0"
-  uid ""
+"horme-common@file:../horme-common":
+  version "0.0.1"
+  dependencies:
+    chalk "^4.1.0"
+    dotenv "^8.2.0"
+    loglevel "^1.7.1"
 
 ieee754@^1.1.13:
   version "1.2.1"

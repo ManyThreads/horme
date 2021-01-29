@@ -1,6 +1,6 @@
-docker build -t ceiling-lamp ./services/ceiling-lamp/
-docker build -t light-switch ./services/light-switch/
-docker build -t reconf ./reconf/
+docker build -t ceiling-lamp -f ./services/ceiling-lamp/Dockerfile .
+docker build -t light-switch -f ./services/light-switch/Dockerfile .
+docker build -t reconf -f ./reconf/Dockerfile .
 #docker build -t failure-reasoner -f services/failure-reasoner/Dockerfile .
 #cd services/camera-motion-detect
 #./docker_build.sh

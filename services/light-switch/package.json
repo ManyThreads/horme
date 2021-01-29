@@ -6,7 +6,8 @@
     "author": "Oliver Giersch",
     "license": "MIT",
     "scripts": {
-        "build": "./node_modules/.bin/tsc -p ."
+        "build": "./node_modules/typescript/bin/tsc -p .",
+        "postinstall": "./node_modules/typescript/bin/tsc --declaration -p ./node_modules/horme-common"
     },
     "repository": {
         "type": "git",

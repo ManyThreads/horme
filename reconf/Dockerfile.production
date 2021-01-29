@@ -10,4 +10,4 @@ FROM node:15-buster
 RUN apt-get update && apt-get install -y docker.io
 WORKDIR /usr/local/bin/horme/reconf
 COPY --from=builder /usr/local/src/horme ..
-ENTRYPOINT ["yarn", "app"]
+ENTRYPOINT ["node", "dist/app.js"]

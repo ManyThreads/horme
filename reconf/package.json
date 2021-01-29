@@ -7,8 +7,8 @@
     "repository": "https://github.com/ManyThreads/horme",
     "scripts": {
         "app": "yarn build && node dist/app.js",
-        "build": "./node_modules/.bin/tsc -p .",
-        "postinstall": "./node_modules/.bin/tsc --declaration -p ./node_modules/horme-common"
+        "build": "./node_modules/typescript/bin/tsc -p .",
+        "postinstall": "./node_modules/typescript/bin/tsc --declaration -p ./node_modules/horme-common/"
     },
     "author": "Oliver Giersch",
     "devDependencies": {

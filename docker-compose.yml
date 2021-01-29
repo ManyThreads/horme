@@ -5,8 +5,8 @@ services:
         init: true
         image: reconf
         build:
-            context: ./reconf/
-            dockerfile: Dockerfile
+            context: .
+            dockerfile: reconf/Dockerfile
         volumes:
             - .:/usr/local/bin/horme
             - /var/run/docker.sock:/var/run/docker.sock
