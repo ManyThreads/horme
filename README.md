@@ -57,7 +57,7 @@ $ docker-compose -f docker-compose.production.yml up --build --remove-orphans re
 To start the container into an interactive tty (useful for testing code changes quickly):
 
 ```shell
-$ docker-compose run --rm reconf
+$ docker-compose -f docker-compose.dev.yml run --rm reconf
 ```
 
 ## 2.3 Stop
@@ -102,10 +102,10 @@ currently includes the following properties:
 
 ```json
 {
-  "cmd": {
-    "exec": "[command or path to executable (string)]",
-    "args": ["[arguments (list of strings, maybe empty)]"]
-  }
+    "cmd": {
+        "exec": "[command or path to executable (string)]",
+        "args": ["[arguments (list of strings, maybe empty)]"]
+    }
 }
 ```
 
@@ -113,10 +113,10 @@ currently includes the following properties:
 
 ```json
 {
-  "cmd": {
-    "exec": "node dist/services/ceiling-lamp/service.js --color",
-    "args": []
-  }
+    "cmd": {
+        "exec": "node dist/services/ceiling-lamp/service.js --color",
+        "args": []
+    }
 }
 ```
 
@@ -129,7 +129,7 @@ arguments, which are passed down to it by the configuration system.
 2. service topic: the unique topic (path) **string** assigned to the service
 3. MQTT host: the MQTT host address
 4. MQTT authentication (optional): **either** username and password, only
-username or no argument at all (all **strings**)
+   username or no argument at all (all **strings**)
 
 ### 3.2.1 Service Topic
 
@@ -158,15 +158,15 @@ configuration message to a service, and only services specifying dependent
 services in their configuration need bother with configuration messages at all.
 
 1. initial configuration (notifying the service of the topics of its
-dependencies)
+   dependencies)
 2. reconfiguration (notifying the service of added and removed dependencies)
 
 The format of configuration messages is as follows:
 
 ```json
 {
-  "add": ["[list of subscriptions (strings)]"],
-  "del": ["[list of subscriptions (strings)]"]
+    "add": ["[list of subscriptions (strings)]"],
+    "del": ["[list of subscriptions (strings)]"]
 }
 ```
 
@@ -174,9 +174,9 @@ Each subscription entry has the following structure:
 
 ```json
 {
-  "uuid": "[string]",
-  "type": "[string]",
-  "topic": "[string]"
+    "uuid": "[string]",
+    "type": "[string]",
+    "topic": "[string]"
 }
 ```
 
@@ -211,7 +211,7 @@ Topics may be prefixed with one of four possible prefix strings:
 1. `data`
 2. `conf`
 3. `fail`
-1. `inf`
+4. `inf`
 
 A fifth `cmd` prefix is reserved for potential use at a later stage
 
@@ -257,10 +257,10 @@ All services publish their state in messages of the following format:
 
 ```jsonc
 {
-  "uuid": "[string]",
-  "type": "[string]",
-  "value": "[on|off]", // for now there are only binary sensor services
-  "timestamp": "[unsigned long integer]" // UNIX time in seconds
+    "uuid": "[string]",
+    "type": "[string]",
+    "value": "[on|off]", // for now there are only binary sensor services
+    "timestamp": "[unsigned long integer]" // UNIX time in seconds
 }
 ```
 
