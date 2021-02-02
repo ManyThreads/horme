@@ -1,17 +1,7 @@
-import {
-    Array,
-    Literal,
-    Number,
-    Union,
-    Static,
-    String,
-    Record,
-    Null,
-    Runtype,
-} from "runtypes";
+import { Array, Literal, Number, Union, Static, String, Record, Null, Runtype } from 'runtypes';
 
 /** The transmitted values of binary sensors. */
-export const Value = Union(Literal("on"), Literal("off"));
+export const Value = Union(Literal('on'), Literal('off'));
 export type Value = Static<typeof Value>;
 
 /** The format for device messages. */

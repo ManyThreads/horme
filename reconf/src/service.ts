@@ -5,7 +5,15 @@ import chalk from 'chalk';
 import mqtt from 'async-mqtt';
 
 import db, { ServiceEntry, ServiceSelection } from './db';
-import { env as getEnv, util, ConfigMessage, Subscription, ServiceConfig, ServiceInfo, parseAs } from 'horme-common';
+import {
+    env as getEnv,
+    util,
+    ConfigMessage,
+    Subscription,
+    ServiceConfig,
+    ServiceInfo,
+    parseAs,
+} from 'horme-common';
 
 export default { cleanUp, configureServices, removeService };
 
@@ -86,12 +94,16 @@ function cleanUp(): void {
 async function instantiateServices(
     selection: ServiceSelection
 ): Promise<[ServiceHandle, Uuid[]][]> {
-    const promises = await Promise.all(selection.map(async ([type, selected]) => {
-        const file = await fs.readFile(`./config/services/${type}.json`);
-        const config = parseAs(ServiceConfig, JSON.parse(file.toString()));
-        if (!config) return [];
-        return await Promise.all(Array.from(selected.map(sel => instantiateService(sel, config))));
-    }));
+    const promises = await Promise.all(
+        selection.map(async ([type, selected]) => {
+            const file = await fs.readFile(`./config/services/${type}.json`);
+            const config = parseAs(ServiceConfig, JSON.parse(file.toString()));
+            if (!config) return [];
+            return await Promise.all(
+                Array.from(selected.map((sel) => instantiateService(sel, config)))
+            );
+        })
+    );
 
     return promises.flat();
 }
@@ -180,6 +192,8 @@ async function configureService(service: ServiceHandle, depends: Uuid[], init = 
         logger.debug(`config message sent to '${topic}', payload:\n\t${payload}`);
     }
 }
+
+function es_lint() {}
 
 function startService(entry: ServiceEntry, config: ServiceConfig, topic: string): ServiceProcess {
     const cmd = [

@@ -1,6 +1,5 @@
 FROM node:15-buster as builder
 
-#ENV NODE_ENV=production
 COPY ./horme-common /usr/local/src/horme/horme-common
 COPY ./services/ceiling-lamp /usr/local/src/horme/services/ceiling-lamp
 WORKDIR /usr/local/src/horme/services/ceiling-lamp

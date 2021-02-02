@@ -1,6 +1,7 @@
 {
     "name": "horme",
     "version": "0.0.1",
+    "author": "Oliver Giersch",
     "description": "horme configuration and re-configuration",
     "bin": "dist/app.js",
     "license": "MIT",
@@ -8,12 +9,14 @@
     "scripts": {
         "app": "yarn build && node dist/app.js",
         "build": "./node_modules/typescript/bin/tsc -p .",
-        "postinstall": "./node_modules/typescript/bin/tsc --declaration -p ./node_modules/horme-common/"
+        "postinstall": "./node_modules/typescript/bin/tsc -p ./node_modules/horme-common/"
     },
-    "author": "Oliver Giersch",
     "devDependencies": {
         "@types/node": "^14.14.22",
-        "eslint": "^7.17.0",
+        "@typescript-eslint/eslint-plugin": "^4.14.1",
+        "@typescript-eslint/parser": "^4.14.1",
+        "eslint": "^7.18.0",
+        "prettier": "^2.2.1",
         "typescript": "^4.1.3"
     },
     "dependencies": {
