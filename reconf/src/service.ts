@@ -108,8 +108,6 @@ async function instantiateServices(
     return promises.flat();
 }
 
-function illegal_canary() {}
-
 /** Instantiates a service of the given type/description/config if it does not already exist. */
 async function instantiateService(
     entry: ServiceEntry,
@@ -192,8 +190,6 @@ async function configureService(service: ServiceHandle, depends: Uuid[], init = 
         logger.debug(`config message sent to '${topic}', payload:\n\t${payload}`);
     }
 }
-
-function es_lint() {}
 
 function startService(entry: ServiceEntry, config: ServiceConfig, topic: string): ServiceProcess {
     const cmd = [

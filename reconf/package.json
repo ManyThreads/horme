@@ -9,6 +9,7 @@
     "scripts": {
         "app": "yarn build && node dist/app.js",
         "build": "./node_modules/typescript/bin/tsc -p .",
+        "eslint": "./node_modules/.bin/eslint '*/**/*.ts'",
         "postinstall": "./node_modules/typescript/bin/tsc -p ./node_modules/horme-common/"
     },
     "devDependencies": {

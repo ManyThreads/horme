@@ -10,7 +10,7 @@ const logger = Object.freeze({
     warn: (...msg: any[]): void => loglevel.warn(`${timestamp()}: ${chalk.yellow(msg)}`),
     error: (...msg: any[]): void => loglevel.error(`${timestamp()}: ${chalk.red(msg)}`),
     info: (...msg: any[]): void => loglevel.info(`${timestamp()}: ${msg}`),
-    setLogLevel: (level: LogLevelDesc): void => loglevel.setLevel(level)
+    setLogLevel: (level: LogLevelDesc): void => loglevel.setLevel(level),
 });
 
 /** Exported functions and objects. */
@@ -18,7 +18,7 @@ export default { abort, expect, logger, timeout };
 
 /** An asynchronous variant of setTimeout. */
 async function timeout(ms: number): Promise<void> {
-    await (promisify(setTimeout))(ms);
+    await promisify(setTimeout)(ms);
 }
 
 /** Aborts the app as reaction to an error. */

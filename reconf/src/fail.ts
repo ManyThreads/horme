@@ -27,7 +27,7 @@ async function setupFailureListener(): Promise<void> {
 /** Initiates MQTT failure handling & reconfiguration. */
 async function onFailure(topic: string, msg: Buffer) {
     logger.debug(`failure message received on topic '${topic}'`);
-    const failure = parseAs(FailureMessage, JSON.parse(msg.toString("utf-8")));
+    const failure = parseAs(FailureMessage, JSON.parse(msg.toString('utf-8')));
     if (failure !== undefined) {
         logger.debug(`removal of service ${chalk.underline(failure.uuid)} requested`);
         await srv.removeService(failure.uuid);
