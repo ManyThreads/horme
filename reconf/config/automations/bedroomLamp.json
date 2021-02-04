@@ -1,0 +1,8 @@
+[{
+    "type": "ceiling-lamp",
+    "alias": "bed1",
+    "mainDevices": ["switch1"],
+    "replacementDevices": "switches",
+    "room": "bedroom",
+    "configMsg": ""
+}]

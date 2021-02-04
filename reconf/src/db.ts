@@ -1,25 +1,37 @@
 import { ServiceType, Uuid } from './service';
+import fs from 'fs/promises';
+import { env as getEnv, util, ConfigMessage, Subscription, ServiceConfig, ServiceInfo, parseAs } from 'horme-common';
+import path from 'path';
 
 export default { queryServiceSelection };
 
 /** The array of selected service type and instances. */
 export type ServiceSelection = [ServiceType, ServiceEntry[]][];
+
+export type AutomationSelection = [ServiceType, ServiceEntry[]][];
 /** Options for specifying which changes need to be made in the database. */
 export type ConfigUpdates = {
     del: Uuid[];
 };
 /** The description of an un-instantiated service and its dependencies. */
 export type ServiceEntry = {
-    uuid: Uuid;
+    /*uuid: Uuid;
     type: ServiceType;
     room: string | null;
-    depends: Uuid[];
+    depends: Uuid[];*/
+    type: string;
+    alias: string;
+    mainDevices: [string];
+    replacementDevices: [string];
+    room: string;
+    configMsg: string;
 };
 
 /********** implementation ************************************************************************/
 
-async function queryServiceSelection(updates?: ConfigUpdates): Promise<ServiceSelection> {
-    if (updates) {
+async function queryServiceSelection(updates?: ConfigUpdates): Promise<Array<ServiceEntry>> {
+    var config = importConfig();
+    /*if (updates) {
         if (updateCount === 0) {
             console.assert(updates.del[0] === 'fra');
             config.set('light-switch', [bedroomSwitch1]);
@@ -36,11 +48,31 @@ async function queryServiceSelection(updates?: ConfigUpdates): Promise<ServiceSe
             throw new Error('exceeded bounds of static reconfiguration scenario');
         }
     }
+    */
 
-    return Array.from(config);
+    return config;
 }
 
-const bedroomSwitch1: ServiceEntry = {
+async function importConfig(): Promise<Array<ServiceEntry>> {
+    const testFolder = './config/automations/';
+    const fs = require('fs');
+    var test :Array<ServiceEntry> = []
+
+    fs.readdirSync(testFolder).forEach((file: any) => {
+        let fullPath = path.join(testFolder, file);
+        console.log(fullPath);
+        console.log(file);
+        let config: Array<ServiceEntry> = JSON.parse(fs.readFileSync(fullPath.toString(),'utf8'));
+        config.forEach((test1) => {
+            console.log(test1.type);
+            test.push(test1)
+        })
+        
+    });
+    return test
+}
+
+/*const bedroomSwitch1: ServiceEntry = {
     uuid: 'bri',
     room: 'bedroom',
     type: 'light-switch',
@@ -75,10 +107,10 @@ const failureReasoner: ServiceEntry = {
     depends: [bedroomSwitch1.uuid, bedroomSwitch2.uuid],
 };
 
-const config: Map<ServiceType, ServiceEntry[]> = new Map([
+const config: Map<ServiceType, Automation[]> = new Map([
     ['ceiling-lamp', [bedroomLamp]],
     ['light-switch', [bedroomSwitch1, bedroomSwitch2]],
     //['failure-reasoner', [failureReasoner]]
-]);
+]);*/
 
-let updateCount = 0;
+//let updateCount = 0;

@@ -66,6 +66,15 @@ export const ServiceConfig = Record({
     args: Array(String),
 });
 
+/*export interface Automation {
+    type: String;
+    alias: String;
+    mainDevices: [String];
+    replacementDevices: [String];
+    room: String;
+    configMsg: String;
+};*/
+
 export type ServiceConfig = Static<typeof ServiceConfig>;
 
 export const parseAs = <T, R extends Runtype<T>>(r: R, msg: any): Static<R> | undefined => {

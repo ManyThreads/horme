@@ -1,0 +1,16 @@
+[{
+    "type": "light-switch",
+    "alias": "bri",
+    "mainDevices": [],
+    "replacementDevices": "",
+    "room": "bedroom",
+    "configMsg": ""
+},
+{
+    "type": "light-switch",
+    "alias": "fra",
+    "mainDevices": [],
+    "replacementDevices": "",
+    "room": "bedroom",
+    "configMsg": ""
+}]

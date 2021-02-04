@@ -39,7 +39,7 @@ async function configureServices(): Promise<void> {
     // instantiate all not yet instantiated services, insert them into global map
     const instantiated = await instantiateServices(result);
     // set and configure all service dependencies
-    await Promise.all(instantiated.map((args) => configureService(...args, true)));
+    await Promise.all(instantiated.map((args) => configureService(args, [] ,true)));
 }
 
 /** Removes the service with the given `uuid` and triggers a full service selection
@@ -49,14 +49,15 @@ async function removeService(uuid: string): Promise<void> {
     const reconfiguration = await db.queryServiceSelection({ del: [uuid] });
 
     const previousServices = Array.from(services.values());
-    const newServices = Array.from(
+    const newServices = reconfiguration
+    /*const newServices = Array.from(
         reconfiguration.flatMap(([_, instances]) => {
-            return instances.map((instance) => instance.uuid);
+            return instances.map((instance) => instance.alias);
         })
-    );
+    );*/
 
     // determine services which are no longer present in updated service selection
-    const removals = previousServices.filter((prev) => !newServices.includes(prev.info.uuid));
+    const removals = previousServices.filter((prev) => newServices.forEach((test) => test.alias != prev.info.uuid))
 
     // remove all services no longer present in the new configuration and kill their respective
     // processes
@@ -73,7 +74,7 @@ async function removeService(uuid: string): Promise<void> {
 
     // configure all newly instantiated services and re-configure all changed services
     logger.info('initiating service reconfiguration...');
-    await Promise.all(instantiatedServices.map((args) => configureService(...args)));
+    await Promise.all(instantiatedServices.map((args) => configureService(args, [])));
 }
 
 function cleanUp(): void {
@@ -84,16 +85,19 @@ function cleanUp(): void {
 
 /** Instantiates all (not yet instantiated) services in the given `selection`. */
 async function instantiateServices(
-    selection: ServiceSelection
-): Promise<[ServiceHandle, Uuid[]][]> {
-    const promises = await Promise.all(selection.map(async ([type, selected]) => {
-        const file = await fs.readFile(`./config/services/${type}.json`);
+    selection: Array<ServiceEntry>
+): Promise<Array<ServiceHandle>> {
+    var ret :Array<ServiceHandle> = []
+    for (const elem of selection) {
+        const file = await fs.readFile(`./config/services/${elem.type}.json`);
         const config = parseAs(ServiceConfig, JSON.parse(file.toString()));
         if (!config) return [];
-        return await Promise.all(Array.from(selected.map(sel => instantiateService(sel, config))));
-    }));
-
-    return promises.flat();
+        var handle = await instantiateService(elem, config);
+        for (let i = 0;i<handle.length;i++) {
+            ret.push(handle[i])
+        }
+    }
+    return ret
 }
 
 function illegal_canary() {}
@@ -102,8 +106,8 @@ function illegal_canary() {}
 async function instantiateService(
     entry: ServiceEntry,
     config: ServiceConfig
-): Promise<[ServiceHandle, Uuid[]]> {
-    const handle = services.get(entry.uuid);
+): Promise<[ServiceHandle]> {
+    const handle = services.get(entry.alias);
     if (handle === undefined) {
         const topic = buildTopic(entry);
         const proc = startService(entry, config, topic);
@@ -115,16 +119,16 @@ async function instantiateService(
                 topic,
                 apartment: process.env.HORME_APARTMENT!,
                 location: entry.room ?? 'global',
-                uuid: entry.uuid,
+                uuid: entry.alias,
                 type: entry.type,
                 sensor: null,
             },
         };
 
-        services.set(entry.uuid, handle);
-        return [handle, entry.depends];
+        services.set(entry.alias, handle);
+        return [handle];
     } else {
-        return [handle, entry.depends];
+        return [handle];
     }
 }
 
@@ -187,7 +191,7 @@ function startService(entry: ServiceEntry, config: ServiceConfig, topic: string)
         '-t',
         '--rm',
         '--name',
-        serviceNamePrefix + entry.uuid,
+        serviceNamePrefix + entry.alias,
         '-e',
         'HORME_LOG_LEVEL=' + env.logLevel,
         '-e',
@@ -195,7 +199,7 @@ function startService(entry: ServiceEntry, config: ServiceConfig, topic: string)
         '-e',
         'HORME_SERVICE_TOPIC=' + topic,
         '-e',
-        'HORME_SERVICE_UUID=' + entry.uuid,
+        'HORME_SERVICE_UUID=' + entry.alias,
         '--network',
         'horme_default',
         config.image,
@@ -204,7 +208,7 @@ function startService(entry: ServiceEntry, config: ServiceConfig, topic: string)
 
     const instance = spawn('docker', cmd);
     instance.stdout.on('data', (data: Buffer) => {
-        console.log(`\tfrom '${entry.type}/${chalk.underline(entry.uuid)}' (stdout):`);
+        console.log(`\tfrom '${entry.type}/${chalk.underline(entry.alias)}' (stdout):`);
         const lines = data.toString('utf-8').split('\n');
         for (const line of lines) {
             console.log(`\t${line}`);
@@ -212,7 +216,7 @@ function startService(entry: ServiceEntry, config: ServiceConfig, topic: string)
     });
 
     instance.stderr.on('data', (data: Buffer) => {
-        console.log(`\tfrom '${entry.type}/${chalk.underline(entry.uuid)}' (stderr):`);
+        console.log(`\tfrom '${entry.type}/${chalk.underline(entry.alias)}' (stderr):`);
         const lines = data.toString('utf-8').split('\n');
         for (const line of lines) {
             console.log(`\t${line}`);
@@ -228,5 +232,5 @@ function buildTopic(entry: ServiceEntry): string {
         entry.room !== null
             ? `${process.env.HORME_APARTMENT}/${entry.room}`
             : `${process.env.HORME_APARTMENT}/global`;
-    return `${base}/${entry.type}${entry.uuid}`;
+    return `${base}/${entry.type}${entry.alias}`;
 }
