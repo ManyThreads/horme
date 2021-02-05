@@ -1,33 +1,67 @@
-version: '3'
+version: '3.8'
 
 services:
-  reconf:
-    build: .
-    volumes:
-      - ./reconf:/home/node/reconf
-    working_dir: /home/node/reconf
-    depends_on:
-      - neo4j
-      - mosquitto
-    ports:
-      - 1883:1883 # allows outside connections
-  neo4j:
-    image: neo4j:4.0.4
-    volumes:
-      - ./dbms/data:/data
-      - ./dbms/logs:/logs
-    environment:
-      - NEO4J_AUTH=neo4j/admin
-      - NEO4J_dbms_default__advertised__address=neo4j
-      - NEO4J_dbms_connector_bolt_listen__address=:7687
-      - NEO4J_dbms_connector_bolt_advertised__address=:7687
-      - NEO4J_dbms_ssl_policy_bolt_client__auth=NONE
-      - NEO4J_dbms_ssl_policy_https_client__auth=NONE
-      - NEO4J_dbms_default__listen__address=0.0.0.0
-    ports:
-      - 7474:7474
-      - 7687:7687
-  mosquitto:
-    image: eclipse-mosquitto:1.6.9
-    ports:
-      - 1883:1883
+    reconf:
+        init: true
+        build:
+            context: .
+            dockerfile: reconf/Dockerfile
+        environment:
+            NODE_ENV: production
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+        depends_on:
+            - neo4j
+            - mosquitto
+        command: [node, dist/app.js]
+    reconf_debug:
+        init: true
+        build:
+            context: .
+            dockerfile: reconf/Dockerfile
+        environment:
+            NODE_ENV: development
+        ports:
+            - 9229:9229
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+        command: [node, --inspect=0.0.0.0:9229, dist/app.js]
+        # command: ['node --inspect-brk=0.0.0.0:9229', 'dist/app.js']
+        depends_on:
+            - neo4j
+            - mosquitto
+    reconf_dev:
+        init: true
+        build:
+            context: .
+            dockerfile: reconf/Dockerfile
+        volumes:
+            - .:/usr/local/bin/horme
+            - /var/run/docker.sock:/var/run/docker.sock
+        depends_on:
+            - neo4j
+            - mosquitto
+        command: /bin/bash
+    neo4j:
+        image: neo4j:4.0.4
+        volumes:
+        - ./dbms/data:/data
+        - ./dbms/logs:/logs
+        environment:
+        - NEO4J_AUTH=neo4j/admin
+        - NEO4J_dbms_default__advertised__address=neo4j
+        - NEO4J_dbms_connector_bolt_listen__address=:7687
+        - NEO4J_dbms_connector_bolt_advertised__address=:7687
+        - NEO4J_dbms_ssl_policy_bolt_client__auth=NONE
+        - NEO4J_dbms_ssl_policy_https_client__auth=NONE
+        - NEO4J_dbms_default__listen__address=0.0.0.0
+        ports:
+        - 7474:7474
+        - 7687:7687
+    mosquitto:
+        image: eclipse-mosquitto:2.0.5
+        ports:
+            - 1883:1883
+        volumes:
+            # read-only mosquitto config
+            - ./mosquitto:/mosquitto/config:ro

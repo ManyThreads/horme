@@ -1,0 +1,29 @@
+{
+    "version": "2.0.0",
+    "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+    },
+    "type": "shell",
+    "tasks": [
+        {
+            "label": "services: build",
+            "group": "build",
+            "command": "./build_images.sh"
+        },
+        {
+            "label": "docker-compose: debug",
+            "command": "docker-compose up --build reconf_debug",
+            "dependsOn": "services: build"
+        },
+        {
+            "label": "docker-compose: prod",
+            "command": "docker-compose up --build reconf",
+            "dependsOn": "services: build"
+        },
+        {
+            "label": "docker-compose: clean-up",
+            "command": "docker-compose down -v --remove-orphans"
+        }
+    ]
+}

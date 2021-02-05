@@ -34,56 +34,61 @@ This can be copied as `reconf/.env` and individually adjusted to the specific us
 
 ## 2.1 Starting & Building Containers
 
-First time container instantiation takes some time for downloading, building and
-configuring the images.
+Build test services:
 
-```bash
-$ docker-compose run --rm reconf
+```shell
+$ ./build_images.sh
 ```
 
-## 2.2 Inside `reconf` Container
+## 2.2 Run
 
-The above command starts a `bash` instance within the container inside the
-mounted `horme/` directory.
-The following command installs the required `npm` packages and is only required
-once:
+To build the `reconf` app, its container and run the container:
 
-```bash
-$ npm install
+### 2.2.1 Production
+
+```shell
+$ docker-compose up --build --remove-orphans reconf
 ```
 
-Afterwards, type the following command to execute the example application once:
+### 2.2.2 Debug
 
-```bash
-$ npm run app
+```shell
+$ docker-compose up --build --remove-orphans reconf_debug
 ```
 
-### 2.2.1 Rebuilding `reconf` Container
+### 2.2.3 Development
 
-After making changes to the `reconf` container's [`Dockerfile`](.Dockerfile) it
-will likely be necessary to explicitly rebuild the container image:
+To start the container into an interactive tty (useful for testing code changes quickly):
 
-```bash
-$ docker-compose build reconf
+```shell
+$ docker-compose run --rm reconf_dev
 ```
 
-## 2.3 Stopping Auxiliary Containers
+## 2.3 Stop
 
-```bash
-$ docker-compose down
+To stop any and all associated containers, auxilliary or otherwise:
+
+```shell
+$ docker-compose down -v --remove-orphans
 ```
 
 ## 2.4 Purging all Docker Containers, Images, Volumes and Networks
 
-```bash
+```shell
 $ docker system prune -a --volumes
+```
+
+## 2.5 Viewing Logs of Auxilliary Containers
+
+```shell
+$ docker-compose logs [mosquitto|neo4j|...]
 ```
 
 # 3. Service Contracts (Compliant Service Specification)
 
 The HorME configuration & re-configuration system manages the dynamic
 instantiation and communication between between compliant but otherwise
-independent *service* applications.
+independent _service_ applications.
 Services are specified by **configuration files**, which must contain the
 relevant information for instantiating the service as well as their
 dependencies.
@@ -105,9 +110,7 @@ currently includes the following properties:
 {
     "cmd": {
         "exec": "[command or path to executable (string)]",
-        "args": [
-            "[arguments (list of strings, maybe empty)]"
-        ]
+        "args": ["[arguments (list of strings, maybe empty)]"]
     }
 }
 ```
@@ -125,14 +128,14 @@ currently includes the following properties:
 
 ## 3.2 Program Arguments
 
-Every compliant service must accept and handle an *ordered set* of program
+Every compliant service must accept and handle an _ordered set_ of program
 arguments, which are passed down to it by the configuration system.
 
 1. service UUID: an unique **string** assigned to the service instance
 2. service topic: the unique topic (path) **string** assigned to the service
 3. MQTT host: the MQTT host address
 4. MQTT authentication (optional): **either** username and password, only
-username or no argument at all (all **strings**)
+   username or no argument at all (all **strings**)
 
 ### 3.2.1 Service Topic
 
@@ -161,7 +164,7 @@ configuration message to a service, and only services specifying dependent
 services in their configuration need bother with configuration messages at all.
 
 1. initial configuration (notifying the service of the topics of its
-dependencies)
+   dependencies)
 2. reconfiguration (notifying the service of added and removed dependencies)
 
 The format of configuration messages is as follows:
@@ -214,7 +217,7 @@ Topics may be prefixed with one of four possible prefix strings:
 1. `data`
 2. `conf`
 3. `fail`
-1. `inf`
+4. `inf`
 
 A fifth `cmd` prefix is reserved for potential use at a later stage
 
@@ -250,7 +253,7 @@ As of now, the following service types are modelled:
 4. `ceiling-lamp`
 
 Both `light-switch` and `camera-motion-detect` services can be used to infer
-*presence* in their respective room.
+_presence_ in their respective room.
 `failure-detect` services are exclusively used to detect failure of
 `light-switch` service instances (for now).
 Both `failure-detect` and `ceiling-lamp` depend on any number of `light-switch`

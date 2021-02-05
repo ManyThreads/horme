@@ -1,11 +1,10 @@
 import neo4j from 'neo4j-driver';
-import util from './util';
-import getEnv from './env';
-import { SelectedService } from './service';
+import { env as getEnv, util } from 'horme-common';
+import { ServiceEntry } from './db';
 
-const env = getEnv.fromFile();
+const env = getEnv.readEnvironment('reconf');
 const logger = util.logger;
-const driver = neo4j.driver('bolt://neo4j:7687', neo4j.auth.basic(env.NEO4J_USER, env.NEO4J_PASS));
+const driver = neo4j.driver('bolt://neo4j:7687', neo4j.auth.basic(env.neo.username, env.neo.pass));
 
 //reset whole database
 export async function resetDatabase(): Promise<void>{
@@ -31,7 +30,7 @@ export async function returnQuery(n :string): Promise<string> {
 }
 
 //add all dependencies from services to other services
-async function updateAllDependencies(config: [string, SelectedService[]][]) {
+async function updateAllDependencies(config: [string, ServiceEntry[]][]) {
 
     //Reset all current dependencies, as device dependencies may change during reconfiguration
     await resetAllDependencies();
@@ -70,7 +69,7 @@ async function resetAllDependencies() {
     return;
 }
 
-export async function addConfigToDB(config: [string, SelectedService[]][]): Promise<void> {
+export async function addConfigToDB(config: [string, ServiceEntry[]][]): Promise<void> {
 
     for (const element of config) {
         for (const elem2 of element[1]) {

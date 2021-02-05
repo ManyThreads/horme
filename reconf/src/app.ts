@@ -1,19 +1,26 @@
 import 'source-map-support/register';
 
-import loglevel from 'loglevel';
-
-import getEnv from './env';
+import { env as getEnv, util } from 'horme-common';
 import fail from './fail';
 import srv from './service';
-import util from './util';
 import { resetDatabase } from './neo4j';
 
-const env = getEnv.fromFile();
+const env = getEnv.readEnvironment('reconf');
 const logger = util.logger;
 
-main().catch(err => util.abort(err));
+const cleanup = () => {
+    srv.cleanUp();
+    process.exit();
+};
+
+process.stdin.resume();
+process.on('SIGTERM', cleanup);
+process.on('SIGINT', cleanup);
+
+main().catch((err) => util.abort(err));
+
 async function main() {
-    loglevel.setLevel(env.LOG_LEVEL);
+    logger.setLogLevel(env.logLevel);
     await resetDatabase();
     await fail.setupFailureListener();
     await srv.configureServices();

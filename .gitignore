@@ -1,7 +1,7 @@
-.vscode/
 .env
 *.js
 *.js.map
 **/node_modules
 **/dist
 dbms/
+**/yarn-error.log
