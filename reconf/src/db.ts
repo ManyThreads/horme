@@ -1,4 +1,4 @@
-import { addConfigToDB, resetDatabase } from './neo4j';
+import { addConfigToDB} from './neo4j';
 import { SelectedService, ServiceSelection, ServiceType, Uuid } from './service';
 
 /********** exports ******************************************************************************/
