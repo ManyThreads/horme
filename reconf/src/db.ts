@@ -40,6 +40,15 @@ async function queryServiceSelection(updates?: ConfigUpdates): Promise<ServiceSe
     return Array.from(config);
 }
 
+export async function queryService(uuid: string): Promise<ServiceEntry | undefined> {
+    for (let [_, value] of config) {
+        for (let entry of value) {
+            if (entry.uuid === uuid) return entry;
+        }
+    }
+    return undefined;
+}
+
 const bedroomSwitch1: ServiceEntry = {
     uuid: 'bri',
     room: 'bedroom',
