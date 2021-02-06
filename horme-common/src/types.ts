@@ -30,6 +30,7 @@ export const ServiceInfo = Record({
     location: String,
     uuid: String,
     type: String,
+    version: Number,
     sensor: String.Or(Null),
 });
 export type ServiceInfo = Static<typeof ServiceInfo>;
