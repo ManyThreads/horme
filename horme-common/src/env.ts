@@ -92,12 +92,12 @@ function parseMqttAuth(): MqttAuth | undefined {
     }
 }
 
-/** Parses Neo4j authentication, if specified. */
+/** Parses Neo4j authentication */
 function parseNeo4jAuth(): Neo4jAuth {
     const [user, pass] = [process.env.HORME_NEO4J_USER, process.env.HORME_NEO4J_PASS];
     if (user === undefined || pass === undefined) {
         throw new Error(
-            '(service) env must specifiy "HORME_SERVICE_TOPIC" and "HORME_SERVICE_UUID"'
+            '(service) env must specifiy "HORME_NEO4J_USER" and "HORME_NEO4J_PASS"'
         );
     } else {
         return { username: user, pass: pass };

@@ -39,7 +39,7 @@ export async function resetDatabase(): Promise<void>{
         await connectNeo4j();
     }
     const session = driver.session();
-    logger.info('Reset Neoj database');
+    logger.info('Reset Neo4j database...');
     await session.run('MATCH (n) DETACH DELETE n')
         .then(() => {
             session.close();});
@@ -101,7 +101,7 @@ async function resetAllDependencies() {
         await connectNeo4j();
     }
     const session = driver.session();
-    logger.info('Reset all Depends_Of relation');
+    logger.info('Reset all Depends_Of relations...');
     await session.run('MATCH ()-[r:DEPENDS_ON]-() DELETE r')
         .then(() => {
             session.close();});
