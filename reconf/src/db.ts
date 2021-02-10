@@ -8,6 +8,11 @@ export default { DataToDB };
 /** The array of selected service type and instances. */
 export type ServiceSelection = [ServiceType, ServiceEntry[]][];
 
+export type DeviceGroup = {
+    name: string;
+    types: [string];
+};
+
 export type AutomationSelection = [ServiceType, ServiceEntry[]][];
 /** Options for specifying which changes need to be made in the database. */
 export type ConfigUpdates = {
@@ -26,6 +31,8 @@ export type ServiceEntry = {
     room: string;
     configMsg: string;
 };
+
+const logger = util.logger;
 
 /********** implementation ************************************************************************/
 
@@ -59,6 +66,7 @@ async function DataToDB() {
 }
 
 async function importAutomations() {
+    logger.info('Import external Automations...');
     const automationFolder = './config/automations/';
     const fs = require('fs');
 
@@ -66,23 +74,25 @@ async function importAutomations() {
         let fullPath = path.join(automationFolder, file);
         let config: Array<ServiceEntry> = JSON.parse(fs.readFileSync(fullPath.toString(),'utf8'));
         config.forEach((test1) => {
-            console.log(test1.type);
             // Add automation to DB
-        })
+        });
     });
 }
 
 async function importDeviceGroups() {
+    logger.info('Import external Device Groups...');
     const deviceGroupsFolder = './config/device-groups/';
     const fs = require('fs');
+    console.log(deviceGroupsFolder);
 
     fs.readdirSync(deviceGroupsFolder).forEach((file: any) => {
         let fullPath = path.join(deviceGroupsFolder, file);
-        let config: Array<ServiceEntry> = JSON.parse(fs.readFileSync(fullPath.toString(),'utf8'));
-        config.forEach((test1) => {
-            console.log(test1.type);
+        let config: Array<DeviceGroup> = JSON.parse(fs.readFileSync(fullPath.toString(),'utf8'));
+        for(const x of config) {
+            logger.info(x.name);
+            logger.info(x.types);
             // Add device group to DB
-        })
+        };  
     });
 }
 

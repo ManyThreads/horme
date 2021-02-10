@@ -1,3 +1,6 @@
-{
-    "type": ["wall-switch", "remote-switch"]
-}
+[
+    {
+        "name": "switches",
+        "types": ["wall-switch", "remote-switch"]
+    }
+]
