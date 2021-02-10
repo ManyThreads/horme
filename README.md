@@ -44,21 +44,32 @@ $ ./build_images.sh
 
 To build the `reconf` app, its container and run the container:
 
+### 2.2.1 Production
+
 ```shell
-$ docker-compose -f docker-compose.production.yml up --build --remove-orphans reconf
+$ docker-compose up --build --remove-orphans reconf
 ```
 
+### 2.2.2 Debug
+
+```shell
+$ docker-compose up --build --remove-orphans reconf_debug
+```
+
+### 2.2.3 Development
 
 To start the container into an interactive tty (useful for testing code changes quickly):
 
 ```shell
-$ docker-compose -f docker-compose.dev.yml run --rm reconf
+$ docker-compose run --rm reconf_dev
 ```
 
 ## 2.3 Stop
 
+To stop any and all associated containers, auxilliary or otherwise:
+
 ```shell
-$ docker-compose -f reconf/docker-compose.yml down -v --remove-orphans
+$ docker-compose down -v --remove-orphans
 ```
 
 ## 2.4 Purging all Docker Containers, Images, Volumes and Networks

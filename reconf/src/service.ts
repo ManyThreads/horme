@@ -5,7 +5,15 @@ import chalk from 'chalk';
 import mqtt from 'async-mqtt';
 
 import db, { ServiceEntry, ServiceSelection } from './db';
-import { env as getEnv, util, ConfigMessage, Subscription, ServiceConfig, ServiceInfo, parseAs } from 'horme-common';
+import {
+    env as getEnv,
+    util,
+    ConfigMessage,
+    Subscription,
+    ServiceConfig,
+    ServiceInfo,
+    parseAs,
+} from 'horme-common';
 
 export default { cleanUp, configureServices, removeService };
 
@@ -40,9 +48,9 @@ async function configureServices(): Promise<void> {
 
     // instantiate all not yet instantiated services, insert them into global map
         //Dont need services. Can be extracted from database.
-    const instantiated = await instantiateServices();
+            //const instantiated = await instantiateServices();
     // set and configure all service dependencies
-    await Promise.all(instantiated.map((args) => configureService(args, [] ,true)));
+            //await Promise.all(instantiated.map((args) => configureService(args, [] ,true)));
 }
 
 /** Removes the service with the given `uuid` and triggers a full service selection
@@ -89,22 +97,22 @@ function cleanUp(): void {
 }
 
 /** Instantiates all (not yet instantiated) services in the given `selection`. */
-async function instantiateServices(): Promise<Array<ServiceHandle>> {
-    var ret :Array<ServiceHandle> = []
-    /*for (const elem of selection) {
-        const file = await fs.readFile(`./config/services/${elem.type}.json`);
-        const config = parseAs(ServiceConfig, JSON.parse(file.toString()));
-        if (!config) return [];
-        var handle = await instantiateService(elem, config);
-        for (let i = 0;i<handle.length;i++) {
-            ret.push(handle[i])
-        }
-    }
-    */
-    return ret
-}
+/*async function instantiateServices(
+    selection: ServiceSelection
+): Promise<[ServiceHandle, Uuid[]][]> {
+    const promises = await Promise.all(
+        selection.map(async ([type, selected]) => {
+            const file = await fs.readFile(`./config/services/${type}.json`);
+            const config = parseAs(ServiceConfig, JSON.parse(file.toString()));
+            if (!config) return [];
+            return await Promise.all(
+                Array.from(selected.map((sel) => instantiateService(sel, config)))
+            );
+        })
+    );
 
-function illegal_canary() {}
+    return promises.flat();
+}*/
 
 /** Instantiates a service of the given type/description/config if it does not already exist. */
 async function instantiateService(

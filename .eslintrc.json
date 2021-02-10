@@ -1,7 +1,5 @@
 {
-    "root": true,
-    "parser": "@typescript-eslint/parser",
-    "plugins": ["@typescript-eslint", "@typescript-eslint/recommended"],
+    "ignorePatterns": ["*.js"],
     "rules": {
         "semi": ["error", "always"],
         "indent": [
