@@ -35,9 +35,12 @@ const serviceNamePrefix = 'horme-';
 /** Instantiates and configures the set of services selected from the database. */
 async function configureServices(): Promise<void> {
     // query current service selection from database
-    const result = await db.queryServiceSelection();
+    // Only need to be done one per execution
+        //const result = await db.queryServiceSelection();
+
     // instantiate all not yet instantiated services, insert them into global map
-    const instantiated = await instantiateServices(result);
+        //Dont need services. Can be extracted from database.
+    const instantiated = await instantiateServices();
     // set and configure all service dependencies
     await Promise.all(instantiated.map((args) => configureService(args, [] ,true)));
 }
@@ -46,10 +49,11 @@ async function configureServices(): Promise<void> {
  *  and configuration update. */
 async function removeService(uuid: string): Promise<void> {
     // retrieve updated service selection from database
-    const reconfiguration = await db.queryServiceSelection({ del: [uuid] });
+    //TODO
+        //const reconfiguration = await db.queryServiceSelection({ del: [uuid] });
 
     const previousServices = Array.from(services.values());
-    const newServices = reconfiguration
+        //const newServices = reconfiguration
     /*const newServices = Array.from(
         reconfiguration.flatMap(([_, instances]) => {
             return instances.map((instance) => instance.alias);
@@ -57,24 +61,25 @@ async function removeService(uuid: string): Promise<void> {
     );*/
 
     // determine services which are no longer present in updated service selection
-    const removals = previousServices.filter((prev) => newServices.forEach((test) => test.alias != prev.info.uuid))
+        //const removals = previousServices.filter((prev) => newServices.forEach((test) => test.alias != prev.info.uuid))
 
     // remove all services no longer present in the new configuration and kill their respective
     // processes
-    for (const service of removals) {
-        logger.warn('killing process of service ' + chalk.underline(service.info.uuid));
+        /*for (const service of removals) {
+            logger.warn('killing process of service ' + chalk.underline(service.info.uuid));
 
-        execSync(`docker stop ${serviceNamePrefix}${service.info.uuid}`);
-        execSync(`docker rm ${serviceNamePrefix}${service.info.uuid}`);
-        services.delete(service.info.uuid);
-    }
+            execSync(`docker stop ${serviceNamePrefix}${service.info.uuid}`);
+            execSync(`docker rm ${serviceNamePrefix}${service.info.uuid}`);
+            services.delete(service.info.uuid);
+        }*/
 
     // instantiate all new services
-    const instantiatedServices = await instantiateServices(reconfiguration);
+    //TODO
+        //const instantiatedServices = await instantiateServices(reconfiguration);
 
     // configure all newly instantiated services and re-configure all changed services
     logger.info('initiating service reconfiguration...');
-    await Promise.all(instantiatedServices.map((args) => configureService(args, [])));
+        //await Promise.all(instantiatedServices.map((args) => configureService(args, [])));
 }
 
 function cleanUp(): void {
@@ -84,11 +89,9 @@ function cleanUp(): void {
 }
 
 /** Instantiates all (not yet instantiated) services in the given `selection`. */
-async function instantiateServices(
-    selection: Array<ServiceEntry>
-): Promise<Array<ServiceHandle>> {
+async function instantiateServices(): Promise<Array<ServiceHandle>> {
     var ret :Array<ServiceHandle> = []
-    for (const elem of selection) {
+    /*for (const elem of selection) {
         const file = await fs.readFile(`./config/services/${elem.type}.json`);
         const config = parseAs(ServiceConfig, JSON.parse(file.toString()));
         if (!config) return [];
@@ -97,6 +100,7 @@ async function instantiateServices(
             ret.push(handle[i])
         }
     }
+    */
     return ret
 }
 

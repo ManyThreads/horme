@@ -3,7 +3,7 @@ import fs from 'fs/promises';
 import { env as getEnv, util, ConfigMessage, Subscription, ServiceConfig, ServiceInfo, parseAs } from 'horme-common';
 import path from 'path';
 
-export default { queryServiceSelection };
+export default { DataToDB };
 
 /** The array of selected service type and instances. */
 export type ServiceSelection = [ServiceType, ServiceEntry[]][];
@@ -29,9 +29,9 @@ export type ServiceEntry = {
 
 /********** implementation ************************************************************************/
 
-async function queryServiceSelection(updates?: ConfigUpdates): Promise<Array<ServiceEntry>> {
-    var config = importConfig();
-    /*if (updates) {
+/*async function queryServiceSelection(updates?: ConfigUpdates): Promise<Array<ServiceEntry>> {
+    var config = importAutomations();
+    if (updates) {
         if (updateCount === 0) {
             console.assert(updates.del[0] === 'fra');
             config.set('light-switch', [bedroomSwitch1]);
@@ -48,28 +48,42 @@ async function queryServiceSelection(updates?: ConfigUpdates): Promise<Array<Ser
             throw new Error('exceeded bounds of static reconfiguration scenario');
         }
     }
-    */
 
-    return config;
+    return null;
+}
+*/
+
+async function DataToDB() {
+    importAutomations();
+    importDeviceGroups();
 }
 
-async function importConfig(): Promise<Array<ServiceEntry>> {
-    const testFolder = './config/automations/';
+async function importAutomations() {
+    const automationFolder = './config/automations/';
     const fs = require('fs');
-    var test :Array<ServiceEntry> = []
 
-    fs.readdirSync(testFolder).forEach((file: any) => {
-        let fullPath = path.join(testFolder, file);
-        console.log(fullPath);
-        console.log(file);
+    fs.readdirSync(automationFolder).forEach((file: any) => {
+        let fullPath = path.join(automationFolder, file);
         let config: Array<ServiceEntry> = JSON.parse(fs.readFileSync(fullPath.toString(),'utf8'));
         config.forEach((test1) => {
             console.log(test1.type);
-            test.push(test1)
+            // Add automation to DB
         })
-        
     });
-    return test
+}
+
+async function importDeviceGroups() {
+    const deviceGroupsFolder = './config/device-groups/';
+    const fs = require('fs');
+
+    fs.readdirSync(deviceGroupsFolder).forEach((file: any) => {
+        let fullPath = path.join(deviceGroupsFolder, file);
+        let config: Array<ServiceEntry> = JSON.parse(fs.readFileSync(fullPath.toString(),'utf8'));
+        config.forEach((test1) => {
+            console.log(test1.type);
+            // Add device group to DB
+        })
+    });
 }
 
 /*const bedroomSwitch1: ServiceEntry = {
