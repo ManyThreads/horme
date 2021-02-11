@@ -123,7 +123,6 @@ async function instantiateService(
     if (handle === undefined) {
         const topic = buildTopic(entry);
         const proc = startService(entry, config, topic);
-
         const handle: ServiceHandle = {
             proc,
             depends: [],

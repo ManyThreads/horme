@@ -1,3 +1,4 @@
+import { addConfigToDB} from './neo4j';
 import { ServiceType, Uuid } from './service';
 import fs from 'fs/promises';
 import { env as getEnv, util, ConfigMessage, Subscription, ServiceConfig, ServiceInfo, parseAs } from 'horme-common';
@@ -55,6 +56,8 @@ const logger = util.logger;
             throw new Error('exceeded bounds of static reconfiguration scenario');
         }
     }
+    
+    await addConfigToDB(Array.from(config));
 
     return null;
 }
