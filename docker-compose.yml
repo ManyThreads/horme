@@ -13,7 +13,8 @@ services:
         depends_on:
             - neo4j
             - mosquitto
-        command: [node, dist/app.js]
+        entrypoint: /bin/sh
+        command: [wait-for.sh, node, dist/app.js]
     reconf_debug:
         init: true
         build:
@@ -25,7 +26,8 @@ services:
             - 9229:9229
         volumes:
             - /var/run/docker.sock:/var/run/docker.sock
-        command: [node, --inspect=0.0.0.0:9229, dist/app.js]
+        entrypoint: /bin/sh
+        command: [wait-for.sh, node, --inspect=0.0.0.0:9229, dist/app.js]
         # command: ['node --inspect-brk=0.0.0.0:9229', 'dist/app.js']
         depends_on:
             - neo4j
