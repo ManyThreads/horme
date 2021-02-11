@@ -6,6 +6,6 @@ WORKDIR /usr/local/src/horme/reconf
 RUN yarn install && yarn build
 
 FROM node:15-buster
-RUN apt-get update && apt-get install -y docker.io
+RUN apt-get update && apt-get install -y docker.io wait-for-it
 WORKDIR /usr/local/bin/horme/reconf
 COPY --from=builder /usr/local/src/horme/reconf .
