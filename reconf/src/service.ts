@@ -113,11 +113,11 @@ async function instantiateService(
     entry: ServiceEntry,
     config: ServiceConfig
 ): Promise<[ServiceHandle, Uuid[]]> {
+
     const handle = services.get(entry.uuid);
     if (handle === undefined) {
         const topic = buildTopic(entry);
         const proc = startService(entry, config, topic);
-
         const handle: ServiceHandle = {
             proc,
             depends: [],

@@ -1,3 +1,4 @@
+import { addConfigToDB} from './neo4j';
 import { ServiceType, Uuid } from './service';
 
 export default { queryServiceSelection };
@@ -36,6 +37,8 @@ async function queryServiceSelection(updates?: ConfigUpdates): Promise<ServiceSe
             throw new Error('exceeded bounds of static reconfiguration scenario');
         }
     }
+    
+    await addConfigToDB(Array.from(config));
 
     return Array.from(config);
 }
