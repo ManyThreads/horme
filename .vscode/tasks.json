@@ -1,51 +1,29 @@
 {
-  "version": "2.0.0",
-  "presentation": {
-    "reveal": "always",
-    "panel": "shared"
-  },
-  "options": {
-    "env": {
-      "horme_dev": "docker-compose.debug.yml",
-      "horme_prod": "docker-compose.production.yml",
-    }
-  },
-  "type": "shell",
-  "tasks": [
-    {
-      "label": "common: build",
-      "group": "build",
-      "command": "docker build -t horme-service-builder ./horme-common/"
+    "version": "2.0.0",
+    "presentation": {
+        "reveal": "always",
+        "panel": "shared"
     },
-    {
-      "label": "services: build",
-      "group": "build",
-      "command": "./build_images.sh",
-      "dependsOn": ["common: build"]
-    },
-    {
-      "label": "reconf: build",
-      "group": "build",
-      "command": "docker build -t reconf ./reconf/",
-      "dependsOn": ["common: build", "services: build"]
-    },
-    {
-      "label": "docker-compose: dev",
-      "command": "docker-compose -f ${horme_dev} up --build",
-      "dependsOn": "reconf: build"
-    },
-    {
-      "label": "docker-compose: dev clean-up",
-      "command": "docker-compose -f ${horme_dev} down -v --remove-orphans"
-    },
-    {
-      "label": "docker-compose: prod",
-      "command": "docker-compose -f ${horme_prod} up --build",
-      "dependsOn": "reconf: build"
-    },
-    {
-      "label": "docker-compose: prod clean-up",
-      "command": "docker-compose -f ${horme_prod} down -v --remove-orphans"
-    },
-  ]
+    "type": "shell",
+    "tasks": [
+        {
+            "label": "services: build",
+            "group": "build",
+            "command": "./build_images.sh"
+        },
+        {
+            "label": "docker-compose: debug",
+            "command": "docker-compose up --build reconf_debug",
+            "dependsOn": "services: build"
+        },
+        {
+            "label": "docker-compose: prod",
+            "command": "docker-compose up --build reconf",
+            "dependsOn": "services: build"
+        },
+        {
+            "label": "docker-compose: clean-up",
+            "command": "docker-compose down -v --remove-orphans"
+        }
+    ]
 }

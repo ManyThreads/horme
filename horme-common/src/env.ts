@@ -7,18 +7,18 @@ export default { readEnvironment };
 
 /** The externally configured environment. */
 export type Environment = {
-    logLevel: LogLevelDesc,
-    host: string,
-    auth?: MqttAuth,
+    logLevel: LogLevelDesc;
+    host: string;
+    auth?: MqttAuth;
 };
 
 /** The externally configured service environment */
-export type ServiceEnvironment = Environment & { topic: string, uuid: string };
+export type ServiceEnvironment = Environment & { topic: string; uuid: string };
 
 /** The MQTT authentication data. */
 export type MqttAuth = {
-    username: string,
-    pass?: string,
+    username: string;
+    pass?: string;
 };
 
 // lazily initialized (reconf) environment
@@ -84,7 +84,7 @@ function parseMqttAuth(): MqttAuth | undefined {
 }
 
 /** Parses environment variables required for services. */
-function parseServiceEnvironment(): { topic: string, uuid: string } {
+function parseServiceEnvironment(): { topic: string; uuid: string } {
     const [topic, uuid] = [process.env.HORME_SERVICE_TOPIC, process.env.HORME_SERVICE_UUID];
     if (topic === undefined || uuid === undefined) {
         throw new Error(
@@ -93,5 +93,4 @@ function parseServiceEnvironment(): { topic: string, uuid: string } {
     } else {
         return { topic, uuid };
     }
-
 }

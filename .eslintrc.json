@@ -1,0 +1,22 @@
+{
+    "ignorePatterns": ["*.js"],
+    "rules": {
+        "semi": ["error", "always"],
+        "indent": [
+            "warn",
+            4,
+            {
+                "SwitchCase": 1
+            }
+        ],
+        "quotes": ["warn", "single"],
+        "camelcase": ["warn"],
+        "@typescript-eslint/no-unused-vars": [
+            "warn",
+            {
+                "argsIgnorePattern": "^_",
+                "varsIgnorePattern": "^_"
+            }
+        ]
+    }
+}

@@ -1,17 +1,24 @@
-import { SelectedService, ServiceSelection, ServiceType, Uuid } from './service';
+import { ServiceType, Uuid } from './service';
 
 export default { queryServiceSelection };
 
+/** The array of selected service type and instances. */
+export type ServiceSelection = [ServiceType, ServiceEntry[]][];
 /** Options for specifying which changes need to be made in the database. */
-export interface ConfigUpdates {
+export type ConfigUpdates = {
     del: Uuid[];
-}
+};
+/** The description of an un-instantiated service and its dependencies. */
+export type ServiceEntry = {
+    uuid: Uuid;
+    type: ServiceType;
+    room: string | null;
+    depends: Uuid[];
+};
 
 /********** implementation ************************************************************************/
 
-async function queryServiceSelection(
-    updates?: ConfigUpdates
-): Promise<ServiceSelection> {
+async function queryServiceSelection(updates?: ConfigUpdates): Promise<ServiceSelection> {
     if (updates) {
         if (updateCount === 0) {
             console.assert(updates.del[0] === 'fra');
@@ -33,41 +40,42 @@ async function queryServiceSelection(
     return Array.from(config);
 }
 
-const bedroomSwitch1: SelectedService = {
+const bedroomSwitch1: ServiceEntry = {
     uuid: 'bri',
     room: 'bedroom',
     type: 'light-switch',
-    depends: []
+    depends: [],
 };
 
-const bedroomSwitch2: SelectedService = {
+const bedroomSwitch2: ServiceEntry = {
     uuid: 'fra',
     room: 'bedroom',
     type: 'light-switch',
-    depends: []
+    depends: [],
 };
 
-const bedroomLamp: SelectedService = {
+const bedroomLamp: ServiceEntry = {
     uuid: 'abc',
     room: 'bedroom',
     type: 'ceiling-lamp',
-    depends: [bedroomSwitch1.uuid, bedroomSwitch2.uuid]
+    depends: [bedroomSwitch1.uuid, bedroomSwitch2.uuid],
 };
-const camera: SelectedService = {
+
+const camera: ServiceEntry = {
     uuid: 'cam',
     room: 'bedroom',
     type: 'camera-motion-detect',
-    depends: []
+    depends: [],
 };
 
-const failureReasoner: SelectedService = {
+const failureReasoner: ServiceEntry = {
     uuid: 'flr',
     room: null,
     type: 'failure-reasoner',
-    depends: [bedroomSwitch1.uuid, bedroomSwitch2.uuid]
+    depends: [bedroomSwitch1.uuid, bedroomSwitch2.uuid],
 };
 
-const config: Map<ServiceType, SelectedService[]> = new Map([
+const config: Map<ServiceType, ServiceEntry[]> = new Map([
     ['ceiling-lamp', [bedroomLamp]],
     ['light-switch', [bedroomSwitch1, bedroomSwitch2]],
     //['failure-reasoner', [failureReasoner]]
