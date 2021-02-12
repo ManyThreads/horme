@@ -40,11 +40,15 @@ async function main() {
                 logger.info("Light-switch received malformed config message.");
                 return;
             }
-            
+
             const serviceInfo = msg.info;
 
             if (!isConfigured) {
-                logger.info('initial configuration received');
+                logger.info(`initial configuration received ${msg.info.version}`);
+                if (msg.info.version === 0) {
+                    // simulate a start error
+                    process.exit(1);
+                }
                 isConfigured = true;
                 simulateSwitchActivity(
                     client,
