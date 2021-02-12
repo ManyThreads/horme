@@ -17,7 +17,15 @@ main().catch(err => util.abort(err));
 async function main() {
     logger.setLogLevel(env.logLevel);
     logger.info('service started on topic ' + env.topic);
-    const client = await mqtt.connectAsync(env.host, env.auth);
+    const client = await mqtt.connectAsync(env.host, {
+        ...env.auth,
+        will: {
+            topic: `fail/${env.topic}`,
+            payload: JSON.stringify({ uuid: env.uuid, reason: 'dead' }),
+            qos: 2,
+            retain: false,
+        }
+    });
 
     const confTopic = 'conf/' + env.topic;
     const dataTopic = 'data/' + env.topic;

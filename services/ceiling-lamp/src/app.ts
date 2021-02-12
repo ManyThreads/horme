@@ -25,7 +25,16 @@ async function main() {
     const confTopic = 'conf/' + env.topic;
     const dataTopic = 'data/' + env.topic;
 
-    const client = await mqtt.connectAsync(env.host, env.auth);
+    const client = await mqtt.connectAsync(env.host, {
+        ...env.auth,
+        will: {
+            topic: `fail/${env.topic}`,
+            payload: JSON.stringify({ uuid: env.uuid, reason: 'dead' }),
+            qos: 2,
+            retain: false,
+        }
+    });
+
     client.on('message', (topic, msg) => {
         let promise: Promise<void>;
         if (topic === confTopic) {
