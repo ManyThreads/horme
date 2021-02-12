@@ -4,7 +4,7 @@ import fs from 'fs/promises';
 import chalk from 'chalk';
 import mqtt from 'async-mqtt';
 
-import db, { ServiceEntry, ServiceSelection } from './db';
+import db, { queryService, ServiceEntry, ServiceSelection } from './db';
 import {
     env as getEnv,
     util,
@@ -14,8 +14,9 @@ import {
     ServiceInfo,
     parseAs,
 } from 'horme-common';
+import ServiceFactory from './service/ServiceFactory';
 
-export default { cleanUp, configureServices, removeService };
+export default { cleanUp, configureServices, removeService, startService, stopService };
 
 /** The service UUID. */
 export type Uuid = string;
@@ -23,21 +24,22 @@ export type Uuid = string;
 export type ServiceType = string;
 
 /** The process handle for a service */
-type ServiceProcess = ChildProcessWithoutNullStreams;
+export type ServiceProcess = ChildProcessWithoutNullStreams;
 
 /** The handle to an actively running service instance. */
-type ServiceHandle = {
+export type ServiceHandle = {
     info: ServiceInfo;
-    proc: ServiceProcess;
+    proc?: ServiceProcess;
     depends: ServiceHandle[];
+    published_version: number; ///< The currently published config version
 };
 
 const env = getEnv.readEnvironment('reconf');
 const logger = util.logger;
 /** The MQTT client used by the service configurator to exchange messages. */
 const client = mqtt.connect(env.host, env.auth);
-/** The hashmap containing all active instantiated services. */
 const services: Map<Uuid, ServiceHandle> = new Map();
+const factory = new ServiceFactory();
 const serviceNamePrefix = 'horme-';
 
 /** Instantiates and configures the set of services selected from the database. */
@@ -71,8 +73,7 @@ async function removeService(uuid: string): Promise<void> {
     for (const service of removals) {
         logger.warn('killing process of service ' + chalk.underline(service.info.uuid));
 
-        execSync(`docker stop ${serviceNamePrefix}${service.info.uuid}`);
-        execSync(`docker rm ${serviceNamePrefix}${service.info.uuid}`);
+        stopService(service.info.uuid);
         services.delete(service.info.uuid);
     }
 
@@ -82,6 +83,27 @@ async function removeService(uuid: string): Promise<void> {
     // configure all newly instantiated services and re-configure all changed services
     logger.info('initiating service reconfiguration...');
     await Promise.all(instantiatedServices.map((args) => configureService(...args)));
+}
+
+async function startService(uuid: string) {
+    const entry = await queryService(uuid);
+    if (!entry) return;
+    const config = await readConfig(entry.type);
+    if (!config) return;
+
+    logger.debug(`Start service ${uuid}`)
+
+    const handle = getServiceHandle(entry);
+    handle.info.version++; // TODO: not here..
+    configureService(handle, entry.depends);
+    const proc = _startService(entry, config, buildTopic(entry));
+    handle.proc = proc;
+    updateServiceHandle(handle);
+}
+
+async function stopService(uuid: string) {
+    // stop and remove container, continue rm on stop failure
+    execSync(`docker stop ${serviceNamePrefix}${uuid} || true && docker rm ${serviceNamePrefix}${uuid} || true`);
 }
 
 function cleanUp(): void {
@@ -96,8 +118,7 @@ async function instantiateServices(
 ): Promise<[ServiceHandle, Uuid[]][]> {
     const promises = await Promise.all(
         selection.map(async ([type, selected]) => {
-            const file = await fs.readFile(`./config/services/${type}.json`);
-            const config = parseAs(ServiceConfig, JSON.parse(file.toString()));
+            const config = await readConfig(type);
             if (!config) return [];
             return await Promise.all(
                 Array.from(selected.map((sel) => instantiateService(sel, config)))
@@ -108,6 +129,11 @@ async function instantiateServices(
     return promises.flat();
 }
 
+async function readConfig(type: ServiceType): Promise<ServiceConfig | undefined> {
+    const file = await fs.readFile(`./config/services/${type}.json`);
+    return parseAs(ServiceConfig, JSON.parse(file.toString()));
+}
+
 /** Instantiates a service of the given type/description/config if it does not already exist. */
 async function instantiateService(
     entry: ServiceEntry,
@@ -116,73 +142,26 @@ async function instantiateService(
     const handle = services.get(entry.uuid);
     if (handle === undefined) {
         const topic = buildTopic(entry);
-        const proc = startService(entry, config, topic);
+        const proc = _startService(entry, config, topic);
 
-        const handle: ServiceHandle = {
-            proc,
-            depends: [],
-            info: {
-                topic,
-                apartment: process.env.HORME_APARTMENT!,
-                location: entry.room ?? 'global',
-                uuid: entry.uuid,
-                type: entry.type,
-                sensor: null,
-            },
-        };
+        const handle: ServiceHandle = factory.createServiceHandle(entry, topic);
+        handle.proc = proc;
 
-        services.set(entry.uuid, handle);
+        updateServiceHandle(handle);
         return [handle, entry.depends];
     } else {
+        updateServiceHandle(handle);
         return [handle, entry.depends];
     }
 }
 
 /** Sets the dependencies of the corresponding service instance. */
 async function configureService(service: ServiceHandle, depends: Uuid[], init = false) {
-    let reconfigure = false;
-    const previous = service.depends;
+    const { add, del } = setServiceDependencies(service, depends);
+    const reconfigure = add.length && del.length;
 
-    const add: Subscription[] = [];
-    const del: Subscription[] = [];
-
-    // filter all services that will be retained from the previous configuration
-    const retained = previous.filter((prev) => {
-        if (depends.find((uuid) => prev.info.uuid === uuid)) {
-            // if a previous service is found in the new configuration, keep it
-            return true;
-        } else {
-            // ...otherwise filter it out
-            reconfigure = true;
-            del.push({
-                uuid: prev.info.uuid,
-                topic: prev.info.topic,
-                type: prev.info.topic,
-            });
-            return false;
-        }
-    });
-
-    // determine all services in the new configuration that were not present in the previous one
-    const additions = depends.reduce((filtered, dep) => {
-        const found = previous.find((prev) => prev.info.uuid === dep);
-        if (!found) {
-            const dependency = services.get(dep)!;
-            reconfigure = true;
-            filtered.push(dependency);
-            add.push({
-                uuid: dependency.info.uuid,
-                topic: dependency.info.topic,
-                type: dependency.info.type,
-            });
-        }
-
-        return filtered;
-    }, [] as ServiceHandle[]);
-
-    service.depends = retained.concat(additions);
-
-    if (init || reconfigure) {
+    if (init || reconfigure || service.published_version !== service.info.version) {
+        service.published_version = service.info.version;
         const topic = `conf/${service.info.topic}`;
         const msg: ConfigMessage = { add, del, info: service.info };
         const payload = JSON.stringify(msg);
@@ -191,7 +170,7 @@ async function configureService(service: ServiceHandle, depends: Uuid[], init = 
     }
 }
 
-function startService(entry: ServiceEntry, config: ServiceConfig, topic: string): ServiceProcess {
+function _startService(entry: ServiceEntry, config: ServiceConfig, topic: string): ServiceProcess {
     const cmd = [
         'run',
         '-t',
@@ -212,6 +191,7 @@ function startService(entry: ServiceEntry, config: ServiceConfig, topic: string)
         config.args.join(' '),
     ];
 
+    logger.debug(`Service start: ${cmd}`);
     const instance = spawn('docker', cmd);
     instance.stdout.on('data', (data: Buffer) => {
         console.log(`\tfrom '${entry.type}/${chalk.underline(entry.uuid)}' (stdout):`);
@@ -232,8 +212,75 @@ function startService(entry: ServiceEntry, config: ServiceConfig, topic: string)
     return instance;
 }
 
+function updateServiceHandle(handle: ServiceHandle): void {
+    services.set(handle.info.uuid, handle);
+}
+
+/**
+ * 
+ * @param {ServiceEntry} entry The entry to retrieve the service handle for.
+ * @return {ServiceHandle} The corresponding service for the given entry. If no handle exists a new instance is created.
+ */
+function getServiceHandle(entry: ServiceEntry): ServiceHandle {
+    const handle = services.get(entry.uuid);
+    if (handle === undefined) {
+        const handle: ServiceHandle = factory.createServiceHandle(entry, buildTopic(entry));
+        services.set(entry.uuid, handle);
+        return handle;
+    }
+    return handle;
+}
+
+/**
+ * 
+ * @param {ServiceHandle} service The service handle to update.
+ * @param {Uuid} depends The service uuids the given service depends on.
+ * @return {{add: Subscription[], del: Subscription}} The subscription changes that need to be applied.
+ */
+function setServiceDependencies(service: ServiceHandle, depends: Uuid[]): { add: Subscription[], del: Subscription[] } {
+    const previous = service.depends;
+
+    const add: Subscription[] = [];
+    const del: Subscription[] = [];
+
+    // filter all services that will be retained from the previous configuration
+    const retained = previous.filter((prev) => {
+        if (depends.find((uuid) => prev.info.uuid === uuid)) {
+            // if a previous service is found in the new configuration, keep it
+            return true;
+        } else {
+            // ...otherwise filter it out
+            del.push({
+                uuid: prev.info.uuid,
+                topic: prev.info.topic,
+                type: prev.info.topic,
+            });
+            return false;
+        }
+    });
+
+    // determine all services in the new configuration that were not present in the previous one
+    const additions = depends.reduce((filtered, dep) => {
+        const found = previous.find((prev) => prev.info.uuid === dep);
+        if (!found) {
+            const dependency = services.get(dep)!;
+            filtered.push(dependency);
+            add.push({
+                uuid: dependency.info.uuid,
+                topic: dependency.info.topic,
+                type: dependency.info.type,
+            });
+        }
+
+        return filtered;
+    }, [] as ServiceHandle[]);
+
+    service.depends = retained.concat(additions);
+    return { add, del };
+}
+
 /** Creates the topic for the service instance of the given service type. */
-function buildTopic(entry: ServiceEntry): string {
+export function buildTopic(entry: ServiceEntry): string {
     const base =
         entry.room !== null
             ? `${process.env.HORME_APARTMENT}/${entry.room}`
