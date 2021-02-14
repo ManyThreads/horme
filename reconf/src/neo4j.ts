@@ -73,7 +73,7 @@ async function updateAllDependencies(config: [string, ServiceEntry[]][]) {
 
     for (const element of config) {
         for (const elem2 of element[1]) {
-            for (const deps of elem2.depends) {
+            /*for (const deps of elem2.depends) {
 
                 //if dependency dev exists
                 const dev: string = 'MATCH (n) WHERE n.uuid = \'' + deps + '\' RETURN n';
@@ -91,6 +91,7 @@ async function updateAllDependencies(config: [string, ServiceEntry[]][]) {
                     }
                 }
             }
+            */
         }   
     }
 }
@@ -120,7 +121,7 @@ export async function addConfigToDB(config: [string, ServiceEntry[]][]): Promise
             type = type.split('-').join('_');
 
             //Check if Service does exist
-            const a: string = 'MATCH (n:' + type + ' { uuid: \'' + elem2.uuid + '\' }) RETURN n';
+            /*const a: string = 'MATCH (n:' + type + ' { uuid: \'' + elem2.uuid + '\' }) RETURN n';
             if (await returnQuery(a) == '') {
                 const b: string = 'CREATE (n:' + type + ' { uuid: \'' + elem2.uuid + '\'})';
                 await returnQuery(b);
@@ -140,6 +141,7 @@ export async function addConfigToDB(config: [string, ServiceEntry[]][]): Promise
                 }
                 
             }
+            */
         }
     }
 

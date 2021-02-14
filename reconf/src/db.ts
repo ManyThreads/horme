@@ -1,4 +1,4 @@
-import { addConfigToDB} from './neo4j';
+import { returnQuery} from './neo4j';
 import { ServiceType, Uuid } from './service';
 import fs from 'fs/promises';
 import { env as getEnv, util, ConfigMessage, Subscription, ServiceConfig, ServiceInfo, parseAs } from 'horme-common';
@@ -73,12 +73,22 @@ async function importAutomations() {
     const automationFolder = './config/automations/';
     const fs = require('fs');
 
-    fs.readdirSync(automationFolder).forEach((file: any) => {
+    fs.readdirSync(automationFolder).forEach(async (file: any) => {
         let fullPath = path.join(automationFolder, file);
         let config: Array<ServiceEntry> = JSON.parse(fs.readFileSync(fullPath.toString(),'utf8'));
-        config.forEach((test1) => {
-            // Add automation to DB
-        });
+        for(const x of config) {
+            
+            //Walkaround for illegal '-' in typename
+            let type = x.type;
+            type = type.split('-').join('_');
+
+            // Add device group to DB
+            const a: string = 'MATCH (n: Automation:' + type + ' { alias: \'' + x.alias + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\' }) RETURN n';
+            if (await returnQuery(a) == '') {
+                const b: string = 'CREATE (n: Automation:' + type + ' { alias: \'' + x.alias + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\' })';
+                await returnQuery(b);
+            }
+        };
     });
 }
 
@@ -88,13 +98,21 @@ async function importDeviceGroups() {
     const fs = require('fs');
     console.log(deviceGroupsFolder);
 
-    fs.readdirSync(deviceGroupsFolder).forEach((file: any) => {
+    fs.readdirSync(deviceGroupsFolder).forEach(async (file: any) => {
         let fullPath = path.join(deviceGroupsFolder, file);
         let config: Array<DeviceGroup> = JSON.parse(fs.readFileSync(fullPath.toString(),'utf8'));
         for(const x of config) {
-            logger.info(x.name);
-            logger.info(x.types);
+
+            //Walkaround for illegal '-' in typename
+            let name = x.name;
+            name = name.split('-').join('_');
+
             // Add device group to DB
+            const a: string = 'MATCH (n: DeviceGroup:' + name + ' { alias: \'' + x.types + '\' }) RETURN n';
+            if (await returnQuery(a) == '') {
+                const b: string = 'CREATE (n: DeviceGroup:' + name + ' { alias: \'' + x.types + '\' })';
+                await returnQuery(b);
+            }
         };  
     });
 }
