@@ -28,11 +28,11 @@ async function queryServiceSelection(updates?: ConfigUpdates): Promise<ServiceSe
             failureReasoner.depends = [bedroomSwitch1.uuid];
             updateCount = 1;
         } else if (updateCount === 1) {
-            console.assert(updates.del[0] === 'bri');
-            config.set('camera-motion-detect', [camera]);
-            bedroomLamp.depends = [];
-            failureReasoner.depends = [];
-            updateCount = 2;
+            // console.assert(updates.del[0] === 'bri');
+            // config.set('camera-motion-detect', [camera]);
+            // bedroomLamp.depends = [];
+            // failureReasoner.depends = [];
+            // updateCount = 2;
         } else {
             throw new Error('exceeded bounds of static reconfiguration scenario');
         }
@@ -41,6 +41,15 @@ async function queryServiceSelection(updates?: ConfigUpdates): Promise<ServiceSe
     await addConfigToDB(Array.from(config));
 
     return Array.from(config);
+}
+
+export async function queryService(uuid: string): Promise<ServiceEntry | undefined> {
+    for (let [_, value] of config) {
+        for (let entry of value) {
+            if (entry.uuid === uuid) return entry;
+        }
+    }
+    return undefined;
 }
 
 const bedroomSwitch1: ServiceEntry = {

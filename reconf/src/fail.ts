@@ -1,8 +1,7 @@
-import chalk from 'chalk';
 import mqtt from 'async-mqtt';
 import { env as getEnv, util, FailureMessage, parseAs } from 'horme-common';
 
-import srv from './service';
+import DefaultHandler from './failure/DefaultHandler';
 
 export default { setupFailureListener };
 
@@ -24,13 +23,14 @@ async function setupFailureListener(): Promise<void> {
     ]);
 }
 
+const defaultHandler = new DefaultHandler();
+
 /** Initiates MQTT failure handling & reconfiguration. */
 async function onFailure(topic: string, msg: Buffer) {
     logger.debug(`failure message received on topic '${topic}'`);
     const failure = parseAs(FailureMessage, JSON.parse(msg.toString('utf-8')));
     if (failure !== undefined) {
-        logger.debug(`removal of service ${chalk.underline(failure.uuid)} requested`);
-        await srv.removeService(failure.uuid);
+        defaultHandler.handle(failure);
     } else {
         logger.info(`Received malformed failure message on topic '${topic}'`);
     }
