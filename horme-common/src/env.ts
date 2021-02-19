@@ -13,8 +13,13 @@ export type Environment = {
     neo: Neo4jAuth;
 };
 
-/** The externally configured service environment */
-export type ServiceEnvironment = Environment & { topic: string; uuid: string };
+export type ServiceEnvironment = {
+    logLevel: LogLevelDesc;
+    host: string;
+    auth?: MqttAuth;
+    topic: string; 
+    uuid: string;
+}
 
 /** The MQTT authentication data. */
 export type MqttAuth = {
@@ -52,7 +57,6 @@ function readEnvironment(type: 'reconf' | 'service'): Environment | ServiceEnvir
             logLevel: parseLogLevel(),
             host: parseMqttHost(),
             auth: parseMqttAuth(),
-            neo: parseNeo4jAuth(),
             ...parseServiceEnvironment(),
         };
     }
