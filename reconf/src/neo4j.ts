@@ -12,7 +12,7 @@ export async function connectNeo4j() {
     logger.info('Connecting to Neo4j...');
     while(true) {
         try {
-            let d = neo4j.driver('bolt://neo4j:7687', neo4j.auth.basic(env.neo.username, env.neo.pass));
+            let d = neo4j.driver('bolt://neo4j:7687', neo4j.auth.basic('neo4j', 'admin'));
 
             const session = d.session();
             const finish = await session.run('RETURN 1').then((server) => {

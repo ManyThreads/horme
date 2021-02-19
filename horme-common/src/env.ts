@@ -10,7 +10,6 @@ export type Environment = {
     logLevel: LogLevelDesc;
     host: string;
     auth?: MqttAuth;
-    neo: Neo4jAuth;
 };
 
 /** The externally configured service environment */
@@ -42,7 +41,6 @@ function readEnvironment(type: 'reconf' | 'service'): Environment | ServiceEnvir
                 logLevel: parseLogLevel(),
                 host: parseMqttHost(),
                 auth: parseMqttAuth(),
-                neo: parseNeo4jAuth(),
             });
         }
 
@@ -52,7 +50,6 @@ function readEnvironment(type: 'reconf' | 'service'): Environment | ServiceEnvir
             logLevel: parseLogLevel(),
             host: parseMqttHost(),
             auth: parseMqttAuth(),
-            neo: parseNeo4jAuth(),
             ...parseServiceEnvironment(),
         };
     }
@@ -89,18 +86,6 @@ function parseMqttAuth(): MqttAuth | undefined {
         throw new Error(
             'env must also specify "HORME_MQTT_USER" if "HORME_MQTT_PASS" is specified'
         );
-    }
-}
-
-/** Parses Neo4j authentication */
-function parseNeo4jAuth(): Neo4jAuth {
-    const [user, pass] = [process.env.HORME_NEO4J_USER, process.env.HORME_NEO4J_PASS];
-    if (user === undefined || pass === undefined) {
-        throw new Error(
-            '(service) env must specifiy "HORME_NEO4J_USER" and "HORME_NEO4J_PASS"'
-        );
-    } else {
-        return { username: user, pass: pass };
     }
 }
 
