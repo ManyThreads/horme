@@ -1,8 +1,9 @@
 [{
     "type": "ceiling-lamp-switch",
     "alias": "bed1",
-    "mainDevices": ["switch1"],
+    "mainDevices": ["bri"],
     "replacementDevices": "switches",
     "room": "bedroom",
-    "configMsg": ""
+    "configMsg": "",
+    "online": true
 }]

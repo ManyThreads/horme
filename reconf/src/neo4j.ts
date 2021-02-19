@@ -52,13 +52,55 @@ export async function returnQuery(n :string): Promise<string> {
     }
     const session = driver.session();
     let entireResult = '';
-    await session.run(n).then(result => {
-        return result.records.map(record => { // Iterate through records
-            entireResult = record.get('n'); // Access the name property from the RETURN statement
+    let json: String = '[';
+
+    session.run(n).then(function (result) {
+        if (result.records.length == 0) {
+            return '';
+        }
+        result.records.forEach(function (record) {
+            json = json + '{';
+            logger.info(record.keys.toString);
+            for(const x in record.keys) {
+                logger.info(x);
+                json += record.get(x);
+            }
+            json += record.entries.toString();
+            json += '},';
         });
+        json = json.substring(0, json.length - 1);
+        json += ']';
+        entireResult += json;
+        session.close();
+    }).catch(function (error) {
+        console.log(error);
+    });
+    
+    /*await session.run(n).then(result => {
+        json = '[';
+        
+        if (result.records.length == 0) {
+            return '';
+        } else {
+            logger.error(result.records[0].keys);
+        }
+        result.records.map(record => { // Iterate through records
+            json = json + '{';
+            record.map(elem  => {
+                json += elem;
+            });
+            json += '},';
+            //entireResult = record.get('n'); // Access the name property from the RETURN statement
+        });
+        json = json.substring(0, json.length - 1);
+        json += ']';
+        entireResult += json;
     })
         .then(() => {
             session.close();});
+    if (entireResult != '') {
+        logger.info(entireResult);
+    }*/
     return entireResult;
 }
 
@@ -103,7 +145,7 @@ async function resetAllDependencies() {
     }
     const session = driver.session();
     logger.info('Reset all Depends_Of relations...');
-    await session.run('MATCH ()-[r:DEPENDS_ON]-() DELETE r')
+    await session.run('MATCH ()-[r:SUBSCRIBE]-() DELETE r')
         .then(() => {
             session.close();});
     return;

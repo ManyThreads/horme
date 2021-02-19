@@ -4,7 +4,8 @@
     "mainDevices": [],
     "replacementDevices": "",
     "room": "bedroom",
-    "configMsg": ""
+    "configMsg": "",
+    "online": true
 },
 {
     "type": "light-switch",
@@ -12,5 +13,6 @@
     "mainDevices": [],
     "replacementDevices": "",
     "room": "bedroom",
-    "configMsg": ""
+    "configMsg": "",
+    "online": true
 }]

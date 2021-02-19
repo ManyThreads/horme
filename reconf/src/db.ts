@@ -64,8 +64,9 @@ const logger = util.logger;
 */
 
 async function DataToDB() {
-    importAutomations();
-    importDeviceGroups();
+    await importAutomations();
+    await importDeviceGroups();
+    await searchMainDevices();
 }
 
 async function importAutomations() {
@@ -82,14 +83,56 @@ async function importAutomations() {
             let type = x.type;
             type = type.split('-').join('_');
 
-            // Add device group to DB
+            // If Device does not exist, add it to DB
             const a: string = 'MATCH (n: Automation:' + type + ' { alias: \'' + x.alias + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\' }) RETURN n';
-            if (await returnQuery(a) == '') {
+            
+            const query = await returnQuery(a);
+            if (query == '') {
                 const b: string = 'CREATE (n: Automation:' + type + ' { alias: \'' + x.alias + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\' })';
                 await returnQuery(b);
             }
         };
     });
+}
+
+async function searchMainDevices() {
+
+    logger.info('searching for main devices');
+
+    // Search for devices with all main devices
+    const a: string = 'MATCH (n: Automation) WHERE NOT n.mainDevices = \'\' RETURN n.alias';
+    const res = await returnQuery(a);
+    logger.info(a);
+    if ( res != '') {
+        //iterate over all devices
+        for(const x of res) {
+            logger.info('searching for ' + x);
+
+            //check if needed device is in database
+            const d: string = 'MATCH (n: Automation) WHERE n.alias = \'' + x + '\' RETURN n.alias';
+            const res1 = await returnQuery(d);
+            if (res1 == '') {
+                logger.warn('Device with alias \'' + x + '\' does not exist');
+                break;
+            }
+
+            const e: string = 'MATCH (n: Automation) WHERE n.online = true RETURN n.alias';
+            const res2 = await returnQuery(e);
+            if (res2 == '') {
+                logger.warn('Device with alias \'' + x + '\' is not online!');
+                //rekonf
+                break;
+            } else {
+                const e: string = 'MATCH (n,m: Automation) WHERE n.alias = \'' + x + '\' AND m.alias = \'' + d + '\' CREATE (n)-[r:SUBSCRIBE]->(m)';
+                const res2 = await returnQuery(e);
+            }
+        }
+
+        // search for main devices
+        //const c: string = 'MATCH (n: Automation WHERE n.alias = \'\' ) RETURN n';
+        //const b: string = 'CREATE (n: Automation:' + type + ' { alias: \'' + x.alias + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\' })';
+        //await returnQuery(b);
+    }
 }
 
 async function importDeviceGroups() {
