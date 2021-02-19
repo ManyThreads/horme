@@ -170,6 +170,13 @@ async function configureService(service: ServiceHandle, depends: Uuid[], init = 
     }
 }
 
+function getNetworkName(): string {
+    const hostname = execSync(`docker inspect -f \"{{.Name}}\" $HOSTNAME`);
+    const network = execSync(`docker inspect -f \"{{json .NetworkSettings.Networks }}\" ${hostname} `);
+    const network_object = JSON.parse(network.toString());
+    return Object.keys(network_object)[0];
+}
+
 function _startService(entry: ServiceEntry, config: ServiceConfig, topic: string): ServiceProcess {
     const cmd = [
         'run',
@@ -186,7 +193,7 @@ function _startService(entry: ServiceEntry, config: ServiceConfig, topic: string
         '-e',
         'HORME_SERVICE_UUID=' + entry.uuid,
         '--network',
-        'horme_default',
+        `${getNetworkName()}`,
         config.image,
         config.args.join(' '),
     ];
