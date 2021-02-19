@@ -108,8 +108,8 @@ async function stopService(uuid: string) {
 
 function cleanUp(): void {
     logger.info('stopping all docker containers.');
-    execSync(`docker stop -t 1 $(docker ps -q -f "name=${serviceNamePrefix}")`);
-    execSync(`docker rm $(docker ps -a -q -f "name=${serviceNamePrefix}")`);
+    execSync(`docker ps -a -q -f "name=${serviceNamePrefix}" | xargs -I {} docker stop -t 1 {} `);
+    execSync(`docker ps -a -q -f "name=${serviceNamePrefix}" | xargs -I {} docker rm {} `);
 }
 
 /** Instantiates all (not yet instantiated) services in the given `selection`. */
