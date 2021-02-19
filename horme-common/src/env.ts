@@ -12,8 +12,13 @@ export type Environment = {
     auth?: MqttAuth;
 };
 
-/** The externally configured service environment */
-export type ServiceEnvironment = Environment & { topic: string; uuid: string };
+export type ServiceEnvironment = {
+    logLevel: LogLevelDesc;
+    host: string;
+    auth?: MqttAuth;
+    topic: string; 
+    uuid: string;
+}
 
 /** The MQTT authentication data. */
 export type MqttAuth = {
