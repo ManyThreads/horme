@@ -14,7 +14,8 @@ export default class ServiceFactory {
                 version: 0,
                 sensor: null,
             },
-            published_version: NaN
+            published_version: NaN,
+            last_update: new Date().getTime(),
         };
     }
 }

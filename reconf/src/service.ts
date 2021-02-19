@@ -16,7 +16,7 @@ import {
 } from 'horme-common';
 import ServiceFactory from './service/ServiceFactory';
 
-export default { cleanUp, configureServices, removeService, startService, stopService };
+export default { cleanUp, configureServices, removeService, startService, stopService, getServiceHandle };
 
 /** The service UUID. */
 export type Uuid = string;
@@ -32,6 +32,7 @@ export type ServiceHandle = {
     proc?: ServiceProcess;
     depends: ServiceHandle[];
     published_version: number; ///< The currently published config version
+    last_update: number;
 };
 
 const env = getEnv.readEnvironment('reconf');
@@ -95,6 +96,7 @@ async function startService(uuid: string) {
 
     const handle = getServiceHandle(entry);
     handle.info.version++; // TODO: not here..
+    handle.last_update = new Date().getTime();
     configureService(handle, entry.depends);
     const proc = _startService(entry, config, buildTopic(entry));
     handle.proc = proc;
