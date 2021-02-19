@@ -26,12 +26,6 @@ export type MqttAuth = {
     pass?: string;
 };
 
-/** The MQTT authentication data. */
-export type Neo4jAuth = {
-    username: string;
-    pass: string;
-};
-
 // lazily initialized (reconf) environment
 let env: Environment;
 
