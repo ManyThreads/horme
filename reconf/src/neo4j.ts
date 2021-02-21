@@ -1,6 +1,7 @@
 import neo4j, { Driver } from 'neo4j-driver';
 import { env as getEnv, util } from 'horme-common';
 import { ServiceEntry } from './db';
+import result, { QueryResult } from 'neo4j-driver/types/result';
 
 const env = getEnv.readEnvironment('reconf');
 const logger = util.logger;
@@ -46,18 +47,16 @@ export async function resetDatabase(): Promise<void>{
 }
 
 //execute query with return
-export async function returnQuery(n :string): Promise<string> {
+export async function returnQuery(n :string): Promise<QueryResult> {
     if(driver === undefined) {
         await connectNeo4j();
     }
     const session = driver.session();
-    let entireResult = '';
-    let json: String = '[';
-
-    session.run(n).then(function (result) {
-        if (result.records.length == 0) {
-            return '';
-        }
+    //let entireResult = '';
+    //let json: String = '[';
+    let result = await session.run(n);
+    /*let result = session.run(n).then(function (result) {
+        return result;
         result.records.forEach(function (record) {
             json = json + '{';
             logger.info(record.keys.toString);
@@ -74,7 +73,7 @@ export async function returnQuery(n :string): Promise<string> {
         session.close();
     }).catch(function (error) {
         console.log(error);
-    });
+    });*/
     
     /*await session.run(n).then(result => {
         json = '[';
@@ -101,7 +100,7 @@ export async function returnQuery(n :string): Promise<string> {
     if (entireResult != '') {
         logger.info(entireResult);
     }*/
-    return entireResult;
+    return result;
 }
 
 //add all dependencies from services to other services
@@ -113,19 +112,19 @@ async function updateAllDependencies(config: [string, ServiceEntry[]][]) {
     //Reset all current dependencies, as device dependencies may change during reconfiguration
     await resetAllDependencies();
 
-    for (const element of config) {
+    /*for (const element of config) {
         for (const elem2 of element[1]) {
-            /*for (const deps of elem2.depends) {
+            for (const deps of elem2.) {
 
                 //if dependency dev exists
                 const dev: string = 'MATCH (n) WHERE n.uuid = \'' + deps + '\' RETURN n';
                 const res = await returnQuery(dev);
-                if (res != '') {
+                if (res.records.length != 0) {
 
                     //check if relation already exists
                     const checkrel: string = 'MATCH (n)-[DEPENDS_ON]->(m) WHERE n.uuid = \'' + elem2.uuid + '\' AND m.uuid = \'' + deps + '\' RETURN n'; 
                     const result = await returnQuery(checkrel);
-                    if (result == '') {
+                    if (result.records.length != 0) {
 
                         //create relation
                         const newrel: string = 'MATCH (n), (m) WHERE n.uuid = \'' + elem2.uuid + '\' AND m.uuid = \'' + deps + '\' CREATE (n)-[r:DEPENDS_ON]->(m)'; 
@@ -133,9 +132,8 @@ async function updateAllDependencies(config: [string, ServiceEntry[]][]) {
                     }
                 }
             }
-            */
         }   
-    }
+    }*/
 }
 
 //Reset all current dependencies

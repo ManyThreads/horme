@@ -1,4 +1,4 @@
-import { returnQuery} from './neo4j';
+import { returnQuery } from './neo4j';
 import { ServiceType, Uuid } from './service';
 import fs from 'fs/promises';
 import { env as getEnv, util, ConfigMessage, Subscription, ServiceConfig, ServiceInfo, parseAs } from 'horme-common';
@@ -31,6 +31,7 @@ export type ServiceEntry = {
     replacementDevices: [string];
     room: string;
     configMsg: string;
+    online: boolean;
 };
 
 const logger = util.logger;
@@ -73,65 +74,83 @@ async function importAutomations() {
     logger.info('Import external Automations...');
     const automationFolder = './config/automations/';
     const fs = require('fs');
+    const files = await fs.readdirSync(automationFolder);
 
-    fs.readdirSync(automationFolder).forEach(async (file: any) => {
+    //await fs.readdirSync(automationFolder).forEach(async (file: any) => {
+    for (let file of files) {
         let fullPath = path.join(automationFolder, file);
-        let config: Array<ServiceEntry> = JSON.parse(fs.readFileSync(fullPath.toString(),'utf8'));
-        for(const x of config) {
-            
+        let config: Array<ServiceEntry> = JSON.parse(fs.readFileSync(fullPath.toString(), 'utf8'));
+        for (const x of config) {
+
             //Walkaround for illegal '-' in typename
             let type = x.type;
             type = type.split('-').join('_');
 
             // If Device does not exist, add it to DB
-            const a: string = 'MATCH (n: Automation:' + type + ' { alias: \'' + x.alias + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\' }) RETURN n';
-            
+            const a: string = 'MATCH (n: Automation:' + type + ' { alias: \'' + x.alias + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\', online: \'' + x.online + '\'  }) RETURN n';
+
             const query = await returnQuery(a);
-            if (query == '') {
-                const b: string = 'CREATE (n: Automation:' + type + ' { alias: \'' + x.alias + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\' })';
+            if (query.records.length == 0) {
+                const b: string = 'CREATE (n: Automation:' + type + ' { alias: \'' + x.alias + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\', online: \'' + x.online + '\' })';
                 await returnQuery(b);
             }
         };
-    });
+    };
 }
 
 async function searchMainDevices() {
 
-    logger.info('searching for main devices');
+    logger.info('Searching for main devices');
 
     // Search for devices with all main devices
-    const a: string = 'MATCH (n: Automation) WHERE NOT n.mainDevices = \'\' RETURN n.alias';
+    const a: string = 'MATCH (n: Automation) WHERE NOT n.mainDevices = \'\' RETURN n.alias, n.mainDevices';
+
     const res = await returnQuery(a);
-    logger.info(a);
-    if ( res != '') {
-        //iterate over all devices
-        for(const x of res) {
-            logger.info('searching for ' + x);
 
-            //check if needed device is in database
-            const d: string = 'MATCH (n: Automation) WHERE n.alias = \'' + x + '\' RETURN n.alias';
-            const res1 = await returnQuery(d);
-            if (res1 == '') {
-                logger.warn('Device with alias \'' + x + '\' does not exist');
-                break;
-            }
+    if (res.records.length != 0) {
+        //iterate over all devices with main devices
+        res.records.forEach(async function (record) {
+            //iterate over all searched main devices
+            let md = record.get('n.mainDevices');
+            let x = record.get('n.alias');
+            var splitted = md.split(',', 30);
 
-            const e: string = 'MATCH (n: Automation) WHERE n.online = true RETURN n.alias';
-            const res2 = await returnQuery(e);
-            if (res2 == '') {
-                logger.warn('Device with alias \'' + x + '\' is not online!');
-                //rekonf
-                break;
-            } else {
-                const e: string = 'MATCH (n,m: Automation) WHERE n.alias = \'' + x + '\' AND m.alias = \'' + d + '\' CREATE (n)-[r:SUBSCRIBE]->(m)';
+            for (let dev of splitted) {
+                const d: string = 'MATCH (n: Automation) WHERE n.alias = \'' + dev + '\' RETURN n.alias';
+                const res1 = await returnQuery(d);
+                if (res1.records.length == 0) {
+                    logger.warn('Device with alias \'' + dev + '\' does not exist');
+                    return;
+                }
+
+                const e: string = 'MATCH (n: Automation) WHERE n.online = \'true\' AND n.alias = \'' + dev + '\' RETURN n.alias';
                 const res2 = await returnQuery(e);
+                if (res2.records.length == 0) {
+                    logger.warn('Device with alias \'' + dev + '\' is not online!');
+                    //rekonf
+                    return;
+                } else {
+                    logger.info('Adding relation from \"' + x + '\" to \"' + dev + '\".');
+                    if (res2.records.length == 1) {
+                        res2.records.forEach(async function (record) {
+                            const e: string = 'MATCH (n: Automation {alias: \'' + x + '\'}), (m: Automation {alias: \'' + dev + '\'}) CREATE (n)-[r:SUBSCRIBE]->(m)';
+                            const res2 = await returnQuery(e);
+                        });
+                    } else {
+                        logger.error('Internal Error');
+                    }
+                }
             }
-        }
+
+
+        });
 
         // search for main devices
         //const c: string = 'MATCH (n: Automation WHERE n.alias = \'\' ) RETURN n';
         //const b: string = 'CREATE (n: Automation:' + type + ' { alias: \'' + x.alias + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\' })';
         //await returnQuery(b);
+    } else {
+        logger.error('got empty set');
     }
 }
 
@@ -139,12 +158,13 @@ async function importDeviceGroups() {
     logger.info('Import external Device Groups...');
     const deviceGroupsFolder = './config/device-groups/';
     const fs = require('fs');
-    console.log(deviceGroupsFolder);
+    const files = await fs.readdirSync(deviceGroupsFolder);
 
-    fs.readdirSync(deviceGroupsFolder).forEach(async (file: any) => {
+    //await fs.readdirSync(deviceGroupsFolder).forEach(async (file: any) => {
+    for (let file of files) {
         let fullPath = path.join(deviceGroupsFolder, file);
-        let config: Array<DeviceGroup> = JSON.parse(fs.readFileSync(fullPath.toString(),'utf8'));
-        for(const x of config) {
+        let config: Array<DeviceGroup> = JSON.parse(fs.readFileSync(fullPath.toString(), 'utf8'));
+        for (const x of config) {
 
             //Walkaround for illegal '-' in typename
             let name = x.name;
@@ -152,12 +172,13 @@ async function importDeviceGroups() {
 
             // Add device group to DB
             const a: string = 'MATCH (n: DeviceGroup:' + name + ' { alias: \'' + x.types + '\' }) RETURN n';
-            if (await returnQuery(a) == '') {
+            let res = await returnQuery(a);
+            if (res.records.length == 0) {
                 const b: string = 'CREATE (n: DeviceGroup:' + name + ' { alias: \'' + x.types + '\' })';
                 await returnQuery(b);
             }
-        };  
-    });
+        };
+    };
 }
 
 /*const bedroomSwitch1: ServiceEntry = {

@@ -44,13 +44,13 @@ const serviceNamePrefix = 'horme-';
 async function configureServices(): Promise<void> {
     // query current service selection from database
     // Only need to be done one per execution
-        //const result = await db.queryServiceSelection();
+    //const result = await db.queryServiceSelection();
 
     // instantiate all not yet instantiated services, insert them into global map
-        //Dont need services. Can be extracted from database.
-            //const instantiated = await instantiateServices();
+    //Dont need services. Can be extracted from database.
+    //const instantiated = await instantiateServices();
     // set and configure all service dependencies
-            //await Promise.all(instantiated.map((args) => configureService(args, [] ,true)));
+    //await Promise.all(instantiated.map((args) => configureService(args, [] ,true)));
 }
 
 /** Removes the service with the given `uuid` and triggers a full service selection
@@ -58,10 +58,10 @@ async function configureServices(): Promise<void> {
 async function removeService(uuid: string): Promise<void> {
     // retrieve updated service selection from database
     //TODO
-        //const reconfiguration = await db.queryServiceSelection({ del: [uuid] });
+    //const reconfiguration = await db.queryServiceSelection({ del: [uuid] });
 
     const previousServices = Array.from(services.values());
-        //const newServices = reconfiguration
+    //const newServices = reconfiguration
     /*const newServices = Array.from(
         reconfiguration.flatMap(([_, instances]) => {
             return instances.map((instance) => instance.alias);
@@ -69,25 +69,25 @@ async function removeService(uuid: string): Promise<void> {
     );*/
 
     // determine services which are no longer present in updated service selection
-        //const removals = previousServices.filter((prev) => newServices.forEach((test) => test.alias != prev.info.uuid))
+    //const removals = previousServices.filter((prev) => newServices.forEach((test) => test.alias != prev.info.uuid))
 
     // remove all services no longer present in the new configuration and kill their respective
     // processes
-        /*for (const service of removals) {
-            logger.warn('killing process of service ' + chalk.underline(service.info.uuid));
+    /*for (const service of removals) {
+        logger.warn('killing process of service ' + chalk.underline(service.info.uuid));
 
-            execSync(`docker stop ${serviceNamePrefix}${service.info.uuid}`);
-            execSync(`docker rm ${serviceNamePrefix}${service.info.uuid}`);
-            services.delete(service.info.uuid);
-        }*/
+        execSync(`docker stop ${serviceNamePrefix}${service.info.uuid}`);
+        execSync(`docker rm ${serviceNamePrefix}${service.info.uuid}`);
+        services.delete(service.info.uuid);
+    }*/
 
     // instantiate all new services
     //TODO
-        //const instantiatedServices = await instantiateServices(reconfiguration);
+    //const instantiatedServices = await instantiateServices(reconfiguration);
 
     // configure all newly instantiated services and re-configure all changed services
     logger.info('initiating service reconfiguration...');
-        //await Promise.all(instantiatedServices.map((args) => configureService(args, [])));
+    //await Promise.all(instantiatedServices.map((args) => configureService(args, [])));
 }
 
 function cleanUp(): void {
