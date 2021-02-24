@@ -70,6 +70,7 @@ async function DataToDB() {
     await searchMainDevices();
 }
 
+//TODO: check for redundant aliases
 async function importAutomations() {
     logger.info('Import external Automations...');
     const automationFolder = './config/automations/';
@@ -87,15 +88,45 @@ async function importAutomations() {
             type = type.split('-').join('_');
 
             // If Device does not exist, add it to DB
-            const a: string = 'MATCH (n: Automation:' + type + ' { alias: \'' + x.alias + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\', online: \'' + x.online + '\'  }) RETURN n';
+            const a: string = 'MATCH (n: Automation:' + type + ' { alias: \'' + x.alias + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\', online: \'' + x.online + '\', room: \'' + x.room + '\'  }) RETURN n';
 
             const query = await returnQuery(a);
             if (query.records.length == 0) {
-                const b: string = 'CREATE (n: Automation:' + type + ' { alias: \'' + x.alias + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\', online: \'' + x.online + '\' })';
+                const b: string = 'CREATE (n: Automation:' + type + ' { alias: \'' + x.alias + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\', online: \'' + x.online + '\', room: \'' + x.room + '\' })';
                 await returnQuery(b);
             }
         };
     };
+}
+
+//TODO: currently always first replacement devices from type t is used
+async function alternativeConfiguration(dev:string) {
+    logger.info('searching alternative for device \'' + dev + '\'!');
+    //get all importent attr from dev
+    const repldev: string = 'MATCH (n: Automation) WHERE n.alias = \'' + dev + '\' RETURN n.replacementDevices, n.room';
+    let realdev = await returnQuery(repldev);
+
+    let devGroup = realdev.records[0].get('n.replacementDevices');
+    let room = realdev.records[0].get('n.room');
+
+    //get all types from group
+    const grouprq: string = 'MATCH (n: DeviceGroup: ' + devGroup + ') RETURN n.devices';
+
+    let groupres = await returnQuery(grouprq);
+    
+    //get device types (sorted by prio)
+    var splitted = groupres.records[0].get('n.devices').split(',', 30);
+    for (let type of splitted) {
+        type = type.split('-').join('_');
+        const e: string = 'MATCH (n: Automation: ' + type + ') WHERE n.online = \'true\' AND n.room = \'' + room + '\' RETURN n.alias';
+        let back = await returnQuery(e);
+        if(back.records.length != 0){
+            logger.info('Found replacement device(s). Yey!');
+            return back.records[0].get('n.alias');
+        }
+    }
+    return null;
+
 }
 
 async function searchMainDevices() {
@@ -116,7 +147,7 @@ async function searchMainDevices() {
             var splitted = md.split(',', 30);
 
             for (let dev of splitted) {
-                const d: string = 'MATCH (n: Automation) WHERE n.alias = \'' + dev + '\' RETURN n.alias';
+                const d: string = 'MATCH (n: Automation) WHERE n.alias = \'' + dev + '\' RETURN n.alias, n.replacementDevices';
                 const res1 = await returnQuery(d);
                 if (res1.records.length == 0) {
                     logger.warn('Device with alias \'' + dev + '\' does not exist');
@@ -127,18 +158,17 @@ async function searchMainDevices() {
                 const res2 = await returnQuery(e);
                 if (res2.records.length == 0) {
                     logger.warn('Device with alias \'' + dev + '\' is not online!');
-                    //rekonf
-                    return;
-                } else {
-                    logger.info('Adding relation from \"' + x + '\" to \"' + dev + '\".');
-                    if (res2.records.length == 1) {
-                        res2.records.forEach(async function (record) {
-                            const e: string = 'MATCH (n: Automation {alias: \'' + x + '\'}), (m: Automation {alias: \'' + dev + '\'}) CREATE (n)-[r:SUBSCRIBE]->(m)';
-                            const res2 = await returnQuery(e);
-                        });
+                    //get alias from alternative
+                    let alt = await alternativeConfiguration(dev);
+                    if(alt) {
+                        initRelationship(x, alt);
                     } else {
-                        logger.error('Internal Error');
+                        logger.info('No Device found :(');
+                        // TODO remember not inited automations
+                        return;
                     }
+                } else {
+                    initRelationship(x, dev);
                 }
             }
 
@@ -152,6 +182,13 @@ async function searchMainDevices() {
     } else {
         logger.error('got empty set');
     }
+}
+
+async function initRelationship(dev1:string, dev2:string) {
+    logger.info('Adding relation from \"' + dev1 + '\" to \"' + dev2 + '\".');
+    const e: string = 'MATCH (n: Automation {alias: \'' + dev1 + '\'}), (m: Automation {alias: \'' + dev2 + '\'}) CREATE (n)-[r:SUBSCRIBE]->(m)';
+    await returnQuery(e);
+    return;
 }
 
 async function importDeviceGroups() {
@@ -171,10 +208,10 @@ async function importDeviceGroups() {
             name = name.split('-').join('_');
 
             // Add device group to DB
-            const a: string = 'MATCH (n: DeviceGroup:' + name + ' { alias: \'' + x.types + '\' }) RETURN n';
+            const a: string = 'MATCH (n: DeviceGroup:' + name + ' { devices: \'' + x.types + '\' }) RETURN n';
             let res = await returnQuery(a);
             if (res.records.length == 0) {
-                const b: string = 'CREATE (n: DeviceGroup:' + name + ' { alias: \'' + x.types + '\' })';
+                const b: string = 'CREATE (n: DeviceGroup:' + name + ' { devices: \'' + x.types + '\' })';
                 await returnQuery(b);
             }
         };

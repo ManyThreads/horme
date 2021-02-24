@@ -1,17 +1,17 @@
 [{
-    "type": "light-switch",
+    "type": "wall-switch",
     "alias": "bri",
     "mainDevices": [],
-    "replacementDevices": "",
+    "replacementDevices": "switches",
     "room": "bedroom",
     "configMsg": "",
-    "online": true
+    "online": false
 },
 {
-    "type": "light-switch",
+    "type": "remote-switch",
     "alias": "fra",
     "mainDevices": [],
-    "replacementDevices": "",
+    "replacementDevices": "switches",
     "room": "bedroom",
     "configMsg": "",
     "online": true
