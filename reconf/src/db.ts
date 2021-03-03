@@ -92,7 +92,7 @@ async function importAutomations() {
 
             const query = await returnQuery(a);
             if (query.records.length == 0) {
-                const b: string = 'CREATE (n: Automation:' + type + ' { alias: \'' + x.alias + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\', online: \'' + x.online + '\', room: \'' + x.room + '\' })';
+                const b: string = 'CREATE (n: Automation:' + type + ' { alias: \'' + x.alias + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\', online: \'' + x.online + '\', room: \'' + x.room + '\', instantiated: \'false\' })';
                 await returnQuery(b);
             }
         };
@@ -188,6 +188,8 @@ async function initRelationship(dev1:string, dev2:string) {
     logger.info('Adding relation from \"' + dev1 + '\" to \"' + dev2 + '\".');
     const e: string = 'MATCH (n: Automation {alias: \'' + dev1 + '\'}), (m: Automation {alias: \'' + dev2 + '\'}) CREATE (n)-[r:SUBSCRIBE]->(m)';
     await returnQuery(e);
+    const g: string = 'MATCH (n: Automation {alias: \'' + dev1 + '\'}) SET n.initiated = \'true\'';
+    await returnQuery(g);
     return;
 }
 
