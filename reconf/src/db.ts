@@ -3,6 +3,8 @@ import { ServiceType, Uuid } from './service';
 import fs from 'fs/promises';
 import { env as getEnv, util, ConfigMessage, Subscription, ServiceConfig, ServiceInfo, parseAs } from 'horme-common';
 import path from 'path';
+import { QueryResult } from 'neo4j-driver';
+import { instantiateService } from './service';
 
 export default { DataToDB };
 
@@ -85,15 +87,19 @@ async function importAutomations() {
 
             //Walkaround for illegal '-' in typename
             let type = x.type;
-            type = type.split('-').join('_');
+            let newworld = type.split('-').join('_');
 
             // If Device does not exist, add it to DB
-            const a: string = 'MATCH (n: Automation:' + type + ' { alias: \'' + x.alias + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\', online: \'' + x.online + '\', room: \'' + x.room + '\'  }) RETURN n';
+            const a: string = 'MATCH (n: Automation:' + newworld + ' { alias: \'' + x.alias + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\', online: \'' + x.online + '\', room: \'' + x.room + '\'  }) RETURN n';
 
             const query = await returnQuery(a);
             if (query.records.length == 0) {
-                const b: string = 'CREATE (n: Automation:' + type + ' { alias: \'' + x.alias + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\', online: \'' + x.online + '\', room: \'' + x.room + '\', instantiated: \'false\' })';
+                const b: string = 'CREATE (n: Automation:' + newworld + ' { alias: \'' + x.alias + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\', online: \'' + x.online + '\', room: \'' + x.room + '\', instantiated: \'false\' })';
                 await returnQuery(b);
+                const file = await fs.readFileSync(`./config/services/${type}.json`, 'utf8');
+                const back = await parseAs(ServiceConfig, JSON.parse(file.toString()));
+                if (!back) return [];
+                return await instantiateService(x, back);
             }
         };
     };
@@ -129,15 +135,17 @@ async function alternativeConfiguration(dev:string) {
 
 }
 
-async function searchMainDevices() {
+async function initMissingAutomations() {
+    logger.info('Try to add not instantiated devices to the database');
 
-    logger.info('Searching for main devices');
-
-    // Search for devices with all main devices
-    const a: string = 'MATCH (n: Automation) WHERE NOT n.mainDevices = \'\' RETURN n.alias, n.mainDevices';
+    // Search for devices which are not instantiated
+    const a: string = 'MATCH (n: Automation) WHERE n.instantiated = \'false\' RETURN n.mainDevices';
 
     const res = await returnQuery(a);
+    initiateDavices(res);
+}
 
+async function initiateDavices(res: QueryResult) {
     if (res.records.length != 0) {
         //iterate over all devices with main devices
         res.records.forEach(async function (record) {
@@ -164,7 +172,6 @@ async function searchMainDevices() {
                         initRelationship(x, alt);
                     } else {
                         logger.info('No Device found :(');
-                        // TODO remember not inited automations
                         return;
                     }
                 } else {
@@ -182,6 +189,17 @@ async function searchMainDevices() {
     } else {
         logger.error('got empty set');
     }
+}
+
+async function searchMainDevices() {
+
+    logger.info('Searching for main devices');
+
+    // Search for devices with all main devices
+    const a: string = 'MATCH (n: Automation) WHERE NOT n.mainDevices = \'\' RETURN n.mainDevices, n.alias';
+
+    const res = await returnQuery(a);
+    initiateDavices(res);
 }
 
 async function initRelationship(dev1:string, dev2:string) {

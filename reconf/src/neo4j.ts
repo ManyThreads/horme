@@ -1,7 +1,7 @@
 import neo4j, { Driver } from 'neo4j-driver';
 import { env as getEnv, util } from 'horme-common';
 import { ServiceEntry } from './db';
-import result, { QueryResult } from 'neo4j-driver/types/result';
+import { QueryResult } from 'neo4j-driver/types/result';
 
 const env = getEnv.readEnvironment('reconf');
 const logger = util.logger;
@@ -134,6 +134,11 @@ async function updateAllDependencies(config: [string, ServiceEntry[]][]) {
             }
         }   
     }*/
+}
+
+export async function updateDatabase(topic: string, message: string) {
+    logger.error('topic: ' + topic);
+    logger.error('message: ' + message);
 }
 
 //Reset all current dependencies
