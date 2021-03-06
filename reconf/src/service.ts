@@ -216,7 +216,6 @@ function startService(entry: ServiceEntry, config: ServiceConfig, topic: string)
         config.image,
         config.args.join(' '),
     ];
-    logger.error('nope');
     const instance = spawn('docker', cmd);
     instance.stdout.on('data', (data: Buffer) => {
         console.log(`\tfrom '${entry.type}/${chalk.underline(entry.alias)}' (stdout):`);
