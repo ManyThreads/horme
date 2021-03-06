@@ -84,7 +84,7 @@ async function importAutomations() {
 //BUG: When searching a replacement device for a device which is offline and the device-group of the missing device-type is the same as a later main device, 
 //  -  the replacement device could 'steal' the device of a later main-device, which then also needs a replacement device, as the main device is already in use.
 
-async function alternativeConfiguration(dev:string) {
+async function alternativeConfiguration(dev:string, to:string) {
     logger.info('searching alternative for device \'' + dev + '\'!');
 
     //get all importent attr from dev
@@ -103,11 +103,13 @@ async function alternativeConfiguration(dev:string) {
     var splitted = groupres.records[0].get('n.devices').split(',', 30);
     for (let type of splitted) {
         type = type.split('-').join('_');
-        const e: string = 'MATCH (n: Automation: ' + type + ') WHERE n.online = \'true\' AND n.room = \'' + room + '\' AND NOT (n)-[:SUBSCRIBE]->() RETURN n.alias';
+        const e: string = 'MATCH (n: Automation: ' + type + '), ( m: Automation ) WHERE n.online = \'true\' AND m.alias = \'' + to + '\' AND n.room = \'' + room + '\' AND NOT (n)-[:SUBSCRIBE]->(m) RETURN n.alias';
         let back = await returnQuery(e);
         if(back.records.length != 0){
             logger.info('Found replacement device(s). Yey!');
             return back.records[0].get('n.alias');
+        } else {
+            //logger.error(' ');
         }
     }
     return null;
@@ -140,12 +142,12 @@ async function initiateDevices(res: QueryResult) {
                     return;
                 }
 
-                const e: string = 'MATCH (n: Automation) WHERE n.online = \'true\' AND n.alias = \'' + dev + '\' AND NOT (n)-[:SUBSCRIBE]->() RETURN n.alias';
+                const e: string = 'MATCH (n: Automation), (m: Automation) WHERE n.online = \'true\' AND n.alias = \'' + dev + '\' AND m.alias = \'' + x + '\' AND NOT (n)-[:SUBSCRIBE]->(m) RETURN n.alias';
                 const res2 = await returnQuery(e);
                 if (res2.records.length == 0) {
-                    logger.warn('Device with alias \'' + dev + '\' is not online!');
+                    logger.warn('Device with alias \'' + dev + '\' is available for this configuration!');
                     //get alias from alternative
-                    let alt = await alternativeConfiguration(dev);
+                    let alt = await alternativeConfiguration(dev, x);
                     if(alt) {
                         initRelationship(x, alt);
                     } else {
