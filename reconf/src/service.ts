@@ -66,12 +66,12 @@ async function removeService(uuid: string): Promise<void> {
     //const newServices = reconfiguration
     /*const newServices = Array.from(
         reconfiguration.flatMap(([_, instances]) => {
-            return instances.map((instance) => instance.alias);
+            return instances.map((instance) => instance.uuid);
         })
     );*/
 
     // determine services which are no longer present in updated service selection
-    //const removals = previousServices.filter((prev) => newServices.forEach((test) => test.alias != prev.info.uuid))
+    //const removals = previousServices.filter((prev) => newServices.forEach((test) => test.uuid != prev.info.uuid))
 
     // remove all services no longer present in the new configuration and kill their respective
     // processes
@@ -181,7 +181,7 @@ function _startService(entry: ServiceEntry, config: ServiceConfig, topic: string
         '-t',
         '--rm',
         '--name',
-        serviceNamePrefix + entry.alias,
+        serviceNamePrefix + entry.uuid,
         '-e',
         'HORME_LOG_LEVEL=' + env.logLevel,
         '-e',
@@ -189,7 +189,7 @@ function _startService(entry: ServiceEntry, config: ServiceConfig, topic: string
         '-e',
         'HORME_SERVICE_TOPIC=' + topic,
         '-e',
-        'HORME_SERVICE_UUID=' + entry.alias,
+        'HORME_SERVICE_UUID=' + entry.uuid,
         '--network',
         'horme_default',
         config.image,
@@ -199,7 +199,7 @@ function _startService(entry: ServiceEntry, config: ServiceConfig, topic: string
     logger.debug(`Service start: ${cmd}`);
     const instance = spawn('docker', cmd);
     instance.stdout.on('data', (data: Buffer) => {
-        console.log(`\tfrom '${entry.type}/${chalk.underline(entry.alias)}' (stdout):`);
+        console.log(`\tfrom '${entry.type}/${chalk.underline(entry.uuid)}' (stdout):`);
         const lines = data.toString('utf-8').split('\n');
         for (const line of lines) {
             console.log(`\t${line}`);
@@ -207,7 +207,7 @@ function _startService(entry: ServiceEntry, config: ServiceConfig, topic: string
     });
 
     instance.stderr.on('data', (data: Buffer) => {
-        console.log(`\tfrom '${entry.type}/${chalk.underline(entry.alias)}' (stderr):`);
+        console.log(`\tfrom '${entry.type}/${chalk.underline(entry.uuid)}' (stderr):`);
         const lines = data.toString('utf-8').split('\n');
         for (const line of lines) {
             console.log(`\t${line}`);
@@ -290,5 +290,5 @@ export function buildTopic(entry: ServiceEntry): string {
         entry.room !== null
             ? `${process.env.HORME_APARTMENT}/${entry.room}`
             : `${process.env.HORME_APARTMENT}/global`;
-    return `${base}/${entry.type}${entry.alias}`;
+    return `${base}/${entry.type}${entry.uuid}`;
 }

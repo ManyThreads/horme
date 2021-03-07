@@ -1,6 +1,6 @@
 [{
     "type": "wall-switch",
-    "alias": "bri",
+    "uuid": "bri",
     "mainDevices": [],
     "replacementDevices": "switches",
     "room": "bedroom",
@@ -9,7 +9,7 @@
 },
 {
     "type": "remote-switch",
-    "alias": "fra",
+    "uuid": "fra",
     "mainDevices": [],
     "replacementDevices": "switches",
     "room": "bedroom",

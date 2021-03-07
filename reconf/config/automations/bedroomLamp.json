@@ -1,6 +1,6 @@
 [{
     "type": "ceiling-lamp-switch",
-    "alias": "bed1",
+    "uuid": "bed1",
     "mainDevices": ["bri", "fra"],
     "replacementDevices": "",
     "room": "bedroom",

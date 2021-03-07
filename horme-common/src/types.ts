@@ -59,7 +59,7 @@ export const ServiceConfig = Record({
 
 /*export interface Automation {
     type: String;
-    alias: String;
+    uuid: String;
     mainDevices: [String];
     replacementDevices: [String];
     room: String;
