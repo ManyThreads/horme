@@ -5,7 +5,7 @@
     "replacementDevices": "switches",
     "room": "bedroom",
     "configMsg": "",
-    "online": false
+    "online": true
 },
 {
     "type": "remote-switch",

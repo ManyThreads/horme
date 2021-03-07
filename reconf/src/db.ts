@@ -38,6 +38,8 @@ export type ServiceEntry = {
 
 const logger = util.logger;
 
+let allSE: Array<ServiceEntry> = [];
+
 /********** implementation ************************************************************************/
 
 async function DataToDB() {
@@ -77,9 +79,18 @@ async function importAutomations() {
                 await instantiateService(x, back);
             }
         };
+        allSE = allSE.concat(config);
     };
 };
 
+export async function getSEfromUuid(uuid: string): Promise<ServiceEntry | undefined> {
+    for (const x of allSE) {
+        if (x.uuid == uuid) return x;
+    }
+    return undefined;
+}
+
+//depricated
 /*export async function queryService(uuid: string): Promise<ServiceEntry | undefined> {
     for (let [_, value] of config) {
         for (let entry of value) {

@@ -4,7 +4,7 @@ import fs from 'fs/promises';
 import chalk from 'chalk';
 import mqtt from 'async-mqtt';
 
-import db, { ServiceEntry, ServiceSelection } from './db';
+import db, { getSEfromUuid, ServiceEntry, ServiceSelection } from './db';
 import {
     env as getEnv,
     util,
@@ -16,7 +16,7 @@ import {
 } from 'horme-common';
 import ServiceFactory from './service/ServiceFactory';
 
-export default { cleanUp, configureServices, removeService, stopService };
+export default { cleanUp, configureServices, removeService, stopService, startService };
 
 /** The service UUID. */
 export type Uuid = string;
@@ -91,8 +91,8 @@ async function removeService(uuid: string): Promise<void> {
     //await Promise.all(instantiatedServices.map((args) => configureService(args, [])));
 }
 
-/*async function startService(uuid: string) {
-    const entry = await queryService(uuid);
+export async function startService(uuid: string) {
+    const entry = await getSEfromUuid(uuid);
     if (!entry) return;
     const config = await readConfig(entry.type);
     if (!config) return;
@@ -101,11 +101,11 @@ async function removeService(uuid: string): Promise<void> {
 
     const handle = getServiceHandle(entry);
     handle.info.version++; // TODO: not here..
-    configureService(handle, entry.depends);
+    //configureService(handle, entry.depends);
     const proc = _startService(entry, config, buildTopic(entry));
     handle.proc = proc;
     updateServiceHandle(handle);
-}*/
+}
 
 async function stopService(uuid: string) {
     // stop and remove container, continue rm on stop failure
