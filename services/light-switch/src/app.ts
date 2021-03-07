@@ -17,7 +17,15 @@ main().catch(err => util.abort(err));
 async function main() {
     logger.setLogLevel(env.logLevel);
     logger.info('service started on topic ' + env.topic);
-    const client = await mqtt.connectAsync(env.host, env.auth);
+    const client = await mqtt.connectAsync(env.host, {
+        ...env.auth,
+        will: {
+            topic: `fail/${env.topic}`,
+            payload: JSON.stringify({ uuid: env.uuid, reason: 'dead' }),
+            qos: 2,
+            retain: false,
+        }
+    });
 
     const confTopic = 'conf/' + env.topic;
     const dataTopic = 'data/' + env.topic;
@@ -32,11 +40,15 @@ async function main() {
                 logger.info("Light-switch received malformed config message.");
                 return;
             }
-            
+
             const serviceInfo = msg.info;
 
             if (!isConfigured) {
-                logger.info('initial configuration received');
+                logger.info(`initial configuration received ${msg.info.version}`);
+                if (msg.info.version === 0) {
+                    // simulate a start error
+                    process.exit(1);
+                }
                 isConfigured = true;
                 simulateSwitchActivity(
                     client,

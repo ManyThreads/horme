@@ -23,8 +23,8 @@ export type ConfigUpdates = {
 };
 /** The description of an un-instantiated service and its dependencies. */
 export type ServiceEntry = {
-    /*uuid: Uuid;
-    type: ServiceType;
+    uuid: Uuid;
+    /*type: ServiceType;
     room: string | null;
     depends: Uuid[];*/
     type: string;
@@ -79,6 +79,15 @@ async function importAutomations() {
         };
     };
 };
+
+/*export async function queryService(uuid: string): Promise<ServiceEntry | undefined> {
+    for (let [_, value] of config) {
+        for (let entry of value) {
+            if (entry.uuid === uuid) return entry;
+        }
+    }
+    return undefined;
+}*/
 
 //TODO: currently always first replacement devices from type t is used
 //BUG: When searching a replacement device for a device which is offline and the device-group of the missing device-type is the same as a later main device, 
