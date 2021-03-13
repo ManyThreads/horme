@@ -1,10 +1,11 @@
 import { returnQuery } from './neo4j';
-import { ServiceType, Uuid } from './service';
+import { configureServiceUUID, ServiceType, Uuid } from './service';
 import fs from 'fs/promises';
 import { env as getEnv, util, ConfigMessage, Subscription, ServiceConfig, ServiceInfo, parseAs } from 'horme-common';
 import path from 'path';
 import { QueryResult } from 'neo4j-driver';
 import { instantiateService } from './service';
+import { Server } from 'http';
 
 export default { DataToDB };
 
@@ -76,10 +77,8 @@ async function importAutomations() {
                 const file = await fs.readFileSync(`./config/services/${type}.json`, 'utf8');
                 const back = await parseAs(ServiceConfig, JSON.parse(file.toString()));
                 if (!back) {
-                    logger.error('service config could not be parsed for: ' + type);
                     break;
                 } 
-                logger.error('service should be instantiated for: ' + x.uuid);
                 await instantiateService(x, back);
             }
         };
@@ -159,6 +158,7 @@ async function initiateDevices(res: QueryResult) {
             let x = record.get('n.uuid');
             var splitted = md.split(',', 30);
             for (let dev of splitted) {
+                logger.error('Initiate: ' + dev);
                 const d: string = 'MATCH (n: Automation) WHERE n.uuid = \'' + dev + '\' RETURN n.uuid, n.replacementDevices';
                 const res1 = await returnQuery(d);
                 if (res1.records.length == 0) {
@@ -181,10 +181,12 @@ async function initiateDevices(res: QueryResult) {
                 } else {
                     initRelationship(x, dev);
                 }
+                configureServiceUUID(dev);
             }
-
+            configureServiceUUID(x);
 
         };
+
     } else {
         logger.error('got empty set');
     }
@@ -196,7 +198,6 @@ async function searchMainDevices() {
 
     // Search for devices with all main devices
     const a: string = 'MATCH (n: Automation) WHERE NOT n.mainDevices = \'\' RETURN n.mainDevices, n.uuid';
-
     const res = await returnQuery(a);
     initiateDevices(res);
 }
@@ -236,3 +237,4 @@ async function importDeviceGroups() {
         };
     };
 }
+

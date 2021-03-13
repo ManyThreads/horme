@@ -15,6 +15,7 @@ import {
     parseAs,
 } from 'horme-common';
 import ServiceFactory from './service/ServiceFactory';
+import { returnQuery } from './neo4j';
 
 export default { cleanUp, configureServices, removeService, stopService, startService };
 
@@ -101,7 +102,7 @@ export async function startService(uuid: string) {
 
     const handle = getServiceHandle(entry);
     handle.info.version++; // TODO: not here..
-    //configureService(handle, entry.depends);
+
     const proc = _startService(entry, config, buildTopic(entry));
     handle.proc = proc;
     updateServiceHandle(handle);
@@ -157,6 +158,24 @@ export async function instantiateService(
     } else {
         updateServiceHandle(handle);
         return [handle];
+    }
+}
+
+/** Sets the dependencies of the corresponding service instance. */
+export async function configureServiceUUID(uuid: string) {
+    logger.error('Configuring Service: ' + uuid);
+    const config: string = 'MATCH (m: Automation { uuid: \'' + uuid +'\' }), ( n: Automation ) WHERE (n)-[:SUBSCRIBE]->(m) RETURN n.uuid';
+    let depen = await returnQuery(config);
+    let uuids: string[] = [];
+    for(let x of depen.records) {
+        uuids.push(x.get('n.uuid'));
+    }
+    let i = await getSEfromUuid(uuid);
+    if (typeof i !== 'undefined') {
+        let handle = getServiceHandle(i);
+        configureService(handle, uuids);
+    } else {
+        logger.error('No ServiceEntry found..');
     }
 }
 
