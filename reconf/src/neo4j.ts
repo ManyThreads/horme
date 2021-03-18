@@ -52,54 +52,7 @@ export async function returnQuery(n :string): Promise<QueryResult> {
         await connectNeo4j();
     }
     const session = driver.session();
-    //let entireResult = '';
-    //let json: String = '[';
     let result = await session.run(n);
-    /*let result = session.run(n).then(function (result) {
-        return result;
-        result.records.forEach(function (record) {
-            json = json + '{';
-            logger.info(record.keys.toString);
-            for(const x in record.keys) {
-                logger.info(x);
-                json += record.get(x);
-            }
-            json += record.entries.toString();
-            json += '},';
-        });
-        json = json.substring(0, json.length - 1);
-        json += ']';
-        entireResult += json;
-        session.close();
-    }).catch(function (error) {
-        console.log(error);
-    });*/
-    
-    /*await session.run(n).then(result => {
-        json = '[';
-        
-        if (result.records.length == 0) {
-            return '';
-        } else {
-            logger.error(result.records[0].keys);
-        }
-        result.records.map(record => { // Iterate through records
-            json = json + '{';
-            record.map(elem  => {
-                json += elem;
-            });
-            json += '},';
-            //entireResult = record.get('n'); // Access the name property from the RETURN statement
-        });
-        json = json.substring(0, json.length - 1);
-        json += ']';
-        entireResult += json;
-    })
-        .then(() => {
-            session.close();});
-    if (entireResult != '') {
-        logger.info(entireResult);
-    }*/
     return result;
 }
 
@@ -111,29 +64,6 @@ async function updateAllDependencies(config: [string, ServiceEntry[]][]) {
 
     //Reset all current dependencies, as device dependencies may change during reconfiguration
     await resetAllDependencies();
-
-    /*for (const element of config) {
-        for (const elem2 of element[1]) {
-            for (const deps of elem2.) {
-
-                //if dependency dev exists
-                const dev: string = 'MATCH (n) WHERE n.uuid = \'' + deps + '\' RETURN n';
-                const res = await returnQuery(dev);
-                if (res.records.length != 0) {
-
-                    //check if relation already exists
-                    const checkrel: string = 'MATCH (n)-[DEPENDS_ON]->(m) WHERE n.uuid = \'' + elem2.uuid + '\' AND m.uuid = \'' + deps + '\' RETURN n'; 
-                    const result = await returnQuery(checkrel);
-                    if (result.records.length != 0) {
-
-                        //create relation
-                        const newrel: string = 'MATCH (n), (m) WHERE n.uuid = \'' + elem2.uuid + '\' AND m.uuid = \'' + deps + '\' CREATE (n)-[r:DEPENDS_ON]->(m)'; 
-                        await returnQuery(newrel);
-                    }
-                }
-            }
-        }   
-    }*/
 }
 
 export async function updateDatabase(topic: string, message: string) {
@@ -164,29 +94,6 @@ export async function addConfigToDB(config: [string, ServiceEntry[]][]): Promise
             //Walkaround for illegal '-' in typename
             let type = elem2.type;
             type = type.split('-').join('_');
-
-            //Check if Service does exist
-            /*const a: string = 'MATCH (n:' + type + ' { uuid: \'' + elem2.uuid + '\' }) RETURN n';
-            if (await returnQuery(a) == '') {
-                const b: string = 'CREATE (n:' + type + ' { uuid: \'' + elem2.uuid + '\'})';
-                await returnQuery(b);
-
-                //check if Room exist
-                if(elem2.room) {
-                    const room: string = 'MATCH (n:Room { name: \'' + elem2.room + '\'}) RETURN n';
-                    const me = await returnQuery(room);
-                    if (me == '') {
-                        const newroom: string = 'CREATE (n:Room { name: \'' + elem2.room + '\'})';
-                        await returnQuery(newroom);
-                    }
-
-                    //set service and room in ralationship
-                    const newroom: string = 'MATCH (n:Room), (m:' + type + ') WHERE n.name = \'' + elem2.room + '\' AND m.uuid = \'' + elem2.uuid + '\' CREATE (m)-[r:BELONGS_TO]->(n)'; 
-                    await returnQuery(newroom);
-                }
-                
-            }
-            */
         }
     }
 

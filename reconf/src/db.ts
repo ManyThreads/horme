@@ -1,13 +1,13 @@
 import { returnQuery } from './neo4j';
 import { configureServiceUUID, ServiceType, Uuid } from './service';
-import fs from 'fs/promises';
-import { env as getEnv, util, ConfigMessage, Subscription, ServiceConfig, ServiceInfo, parseAs } from 'horme-common';
+import { ServiceConfig, parseAs, util } from 'horme-common';
 import path from 'path';
 import { QueryResult } from 'neo4j-driver';
 import { instantiateService } from './service';
-import { Server } from 'http';
 
 export default { DataToDB };
+
+const logger = util.logger;
 
 /** The array of selected service type and instances. */
 export type ServiceSelection = [ServiceType, ServiceEntry[]][];
@@ -37,21 +37,21 @@ export type ServiceEntry = {
     online: boolean;
 };
 
-const logger = util.logger;
-
 let allSE: Array<ServiceEntry> = [];
 
 /********** implementation ************************************************************************/
 
 async function DataToDB() {
+    logger.info('Import external Automations...');
     await importAutomations();
+    logger.info('Import external DeviceGroups...');
     await importDeviceGroups();
+    logger.info('Import external MainDevices...');
     await searchMainDevices();
 }
 
 //TODO: check for redundant uuides
 async function importAutomations() {
-    logger.info('Import external Automations...');
     const automationFolder = './config/automations/';
     const fs = require('fs');
     const files = await fs.readdirSync(automationFolder);
@@ -62,25 +62,7 @@ async function importAutomations() {
         let config: Array<ServiceEntry> = JSON.parse(fs.readFileSync(fullPath.toString(), 'utf8'));
         //config.forEach(x =>
         for (const x of config) {
-
-            //Walkaround for illegal '-' in typename
-            let type = x.type;
-            let newworld = type.split('-').join('_');
-
-            // If Device does not exist, add it to DB
-            const a: string = 'MATCH (n: Automation:' + newworld + ' { uuid: \'' + x.uuid + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\', online: \'' + x.online + '\', room: \'' + x.room + '\'  }) RETURN n';
-
-            const query = await returnQuery(a);
-            if (query.records.length == 0) {
-                const b: string = 'CREATE (n: Automation:' + newworld + ' { uuid: \'' + x.uuid + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\', online: \'' + x.online + '\', room: \'' + x.room + '\', instantiated: \'false\' })';
-                await returnQuery(b);
-                const file = await fs.readFileSync(`./config/services/${type}.json`, 'utf8');
-                const back = await parseAs(ServiceConfig, JSON.parse(file.toString()));
-                if (!back) {
-                    break;
-                } 
-                await instantiateService(x, back);
-            }
+            addService(x);
         };
         allSE = allSE.concat(config);
     };
@@ -131,12 +113,24 @@ async function alternativeConfiguration(dev:string, to:string) {
         if(back.records.length != 0){
             logger.info('Found replacement device(s). Yey!');
             return back.records[0].get('n.uuid');
-        } else {
-            //logger.error(' ');
         }
     }
     return null;
 
+}
+
+
+//remove automation from db
+//TODO: remove depends
+export async function removeService(uuid: string): Promise<void> {
+    const a: string = 'MATCH (n: Automation { uuid: \'' + uuid + '\' }) RETURN n';
+    let back = await returnQuery(a);
+    if(back.records.length != 0){
+        logger.info('Removing automation with uuid \'' + uuid + '\'!');
+
+        const removeQuery: string = 'MATCH (n: Automation { uuid: \'' + uuid + '\' }) DETACH DELETE n';
+        back = await returnQuery(removeQuery);
+    }
 }
 
 async function initMissingAutomations() {
@@ -236,5 +230,29 @@ async function importDeviceGroups() {
             }
         };
     };
+}
+
+export async function addService(x: ServiceEntry){
+
+    const fs = require('fs');
+
+    //Walkaround for illegal '-' in typename
+    let type = x.type;
+    let newworld = type.split('-').join('_');
+
+    // If Device does not exist, add it to DB
+    const a: string = 'MATCH (n: Automation:' + newworld + ' { uuid: \'' + x.uuid + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\', online: \'' + x.online + '\', room: \'' + x.room + '\'  }) RETURN n';
+
+    const query = await returnQuery(a);
+    if (query.records.length == 0) {
+        const b: string = 'CREATE (n: Automation:' + newworld + ' { uuid: \'' + x.uuid + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\', online: \'' + x.online + '\', room: \'' + x.room + '\', instantiated: \'false\' })';
+        await returnQuery(b);
+        const file = await fs.readFileSync(`./config/services/${type}.json`, 'utf8');
+        const back = await parseAs(ServiceConfig, JSON.parse(file.toString()));
+        if (!back) {
+            return;
+        } 
+        await instantiateService(x, back);
+    }
 }
 
