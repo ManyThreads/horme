@@ -1,11 +1,11 @@
 import { returnQuery } from './neo4j';
-import { configureServiceUUID, ServiceType, Uuid } from './service';
+import { setDependencies, ServiceType, Uuid } from './service';
 import { ServiceConfig, parseAs, util } from 'horme-common';
 import path from 'path';
 import { QueryResult } from 'neo4j-driver';
-import { instantiateService } from './service';
+import { createService } from './service';
 
-export default { DataToDB };
+export default { initializeDatabase };
 
 const logger = util.logger;
 
@@ -17,17 +17,12 @@ export type DeviceGroup = {
     types: [string];
 };
 
-export type AutomationSelection = [ServiceType, ServiceEntry[]][];
 /** Options for specifying which changes need to be made in the database. */
 export type ConfigUpdates = {
     del: Uuid[];
 };
 /** The description of an un-instantiated service and its dependencies. */
 export type ServiceEntry = {
-    //uuid: Uuid;
-    /*type: ServiceType;
-    room: string | null;
-    depends: Uuid[];*/
     type: string;
     uuid: string;
     mainDevices: [string];
@@ -37,53 +32,50 @@ export type ServiceEntry = {
     online: boolean;
 };
 
-let allSE: Array<ServiceEntry> = [];
-
 /********** implementation ************************************************************************/
 
-async function DataToDB() {
-    logger.info('Import external Automations...');
-    await importAutomations();
+async function initializeDatabase() {
+    logger.info('Import external Services...');
+    await importServices();
     logger.info('Import external DeviceGroups...');
     await importDeviceGroups();
     logger.info('Import external MainDevices...');
-    await searchMainDevices();
+    await initMissingServices();
 }
 
 //TODO: check for redundant uuides
-async function importAutomations() {
-    const automationFolder = './config/automations/';
+async function importServices() {
+    const serviceFolder = './config/serviceconf/';
     const fs = require('fs');
-    const files = await fs.readdirSync(automationFolder);
+    const files = await fs.readdirSync(serviceFolder);
 
-    //await fs.readdirSync(automationFolder).forEach(async (file: any) => {
     for (let file of files) {
-        let fullPath = path.join(automationFolder, file);
+        let fullPath = path.join(serviceFolder, file);
         let config: Array<ServiceEntry> = JSON.parse(fs.readFileSync(fullPath.toString(), 'utf8'));
-        //config.forEach(x =>
         for (const x of config) {
             addService(x);
         };
-        allSE = allSE.concat(config);
     };
 };
 
 export async function getSEfromUuid(uuid: string): Promise<ServiceEntry | undefined> {
-    for (const x of allSE) {
-        if (x.uuid == uuid) return x;
+    const a: string = 'MATCH (n: Service { uuid: \'' + uuid + '\'}) RETURN n.type, n.uuid, n.mainDevices, n.replacementDevices, n.room, n.configMsg, n.online';
+    const query = await returnQuery(a);
+    if (query.records.length != 0) {
+        let x = query.records[0];
+        const entry: ServiceEntry = {
+            type: x.get('n.type'),
+            uuid: x.get('n.uuid'),
+            mainDevices: x.get('n.mainDevices'),
+            replacementDevices: x.get('n.replacementDevices'),
+            room: x.get('n.room'),
+            configMsg: x.get('n.configMsg'),
+            online: x.get('n.online'),
+        };
+        return entry;
     }
     return undefined;
 }
-
-//depricated
-/*export async function queryService(uuid: string): Promise<ServiceEntry | undefined> {
-    for (let [_, value] of config) {
-        for (let entry of value) {
-            if (entry.uuid === uuid) return entry;
-        }
-    }
-    return undefined;
-}*/
 
 //TODO: currently always first replacement devices from type t is used
 //BUG: When searching a replacement device for a device which is offline and the device-group of the missing device-type is the same as a later main device, 
@@ -92,8 +84,8 @@ export async function getSEfromUuid(uuid: string): Promise<ServiceEntry | undefi
 async function alternativeConfiguration(dev:string, to:string) {
     logger.info('searching alternative for device \'' + dev + '\'!');
 
-    //get all importent attr from dev
-    const repldev: string = 'MATCH (n: Automation) WHERE n.uuid = \'' + dev + '\' RETURN n.replacementDevices, n.room';
+    //get all importent attributes from dev
+    const repldev: string = 'MATCH (n: Service) WHERE n.uuid = \'' + dev + '\' RETURN n.replacementDevices, n.room';
     let realdev = await returnQuery(repldev);
 
     let devGroup = realdev.records[0].get('n.replacementDevices');
@@ -108,42 +100,47 @@ async function alternativeConfiguration(dev:string, to:string) {
     var splitted = groupres.records[0].get('n.devices').split(',', 30);
     for (let type of splitted) {
         type = type.split('-').join('_');
-        const e: string = 'MATCH (n: Automation: ' + type + '), ( m: Automation ) WHERE n.online = \'true\' AND m.uuid = \'' + to + '\' AND n.room = \'' + room + '\' AND NOT (n)-[:SUBSCRIBE]->(m) RETURN n.uuid';
+
+        //for each replacement type, search for devices in the current room
+        const e: string = 'MATCH (n: Service: ' + type + '), ( m: Service ) WHERE n.online = \'true\' AND m.uuid = \'' + to + '\' AND n.room = \'' + room + '\' AND NOT (n)-[:SUBSCRIBE]->(m) RETURN n.uuid';
         let back = await returnQuery(e);
         if(back.records.length != 0){
-            logger.info('Found replacement device(s). Yey!');
-            return back.records[0].get('n.uuid');
+            let newuuid = back.records[0].get('n.uuid');
+            logger.debug('Found replacement device for \'' + dev + '\' with name \'' + newuuid + '\'');
+            return newuuid;
         }
     }
     return null;
 
 }
 
-
-//remove automation from db
+//remove service from db
 //TODO: remove depends
 export async function removeService(uuid: string): Promise<void> {
-    const a: string = 'MATCH (n: Automation { uuid: \'' + uuid + '\' }) RETURN n';
+    const a: string = 'MATCH (n: Service { uuid: \'' + uuid + '\' }) RETURN n';
     let back = await returnQuery(a);
     if(back.records.length != 0){
-        logger.info('Removing automation with uuid \'' + uuid + '\'!');
+        logger.info('Removing service with uuid \'' + uuid + '\'!');
 
-        const removeQuery: string = 'MATCH (n: Automation { uuid: \'' + uuid + '\' }) DETACH DELETE n';
+        //DETACH implies that all relations are deleted too
+        const removeQuery: string = 'MATCH (n: Service { uuid: \'' + uuid + '\' }) DETACH DELETE n';
         back = await returnQuery(removeQuery);
     }
 }
 
-async function initMissingAutomations() {
-    logger.info('Try to add not instantiated devices to the database');
 
-    // Search for devices which are not instantiated
-    const a: string = 'MATCH (n: Automation) WHERE n.instantiated = \'false\' RETURN n.mainDevices';
+//should be called when new devices are added to net network/switched state to online again
+export async function initMissingServices() {
+    // Search for devices which are not configured
+    const a: string = 'MATCH (n: Service) WHERE n.configured = \'false\' AND NOT n.mainDevices = \'\' RETURN n.mainDevices, n.uuid';
 
     const res = await returnQuery(a);
-    initiateDevices(res);
+    configureServices(res);
 }
 
-async function initiateDevices(res: QueryResult) {
+
+//create configurations for services
+async function configureServices(res: QueryResult) {
     if (res.records.length != 0) {
         //iterate over all devices with main devices
         for(const record of res.records) {
@@ -152,32 +149,33 @@ async function initiateDevices(res: QueryResult) {
             let x = record.get('n.uuid');
             var splitted = md.split(',', 30);
             for (let dev of splitted) {
-                logger.error('Initiate: ' + dev);
-                const d: string = 'MATCH (n: Automation) WHERE n.uuid = \'' + dev + '\' RETURN n.uuid, n.replacementDevices';
+                const d: string = 'MATCH (n: Service) WHERE n.uuid = \'' + dev + '\' RETURN n.uuid, n.replacementDevices';
                 const res1 = await returnQuery(d);
                 if (res1.records.length == 0) {
                     logger.warn('Device with uuid \'' + dev + '\' does not exist');
                     return;
                 }
 
-                const e: string = 'MATCH (n: Automation), (m: Automation) WHERE n.online = \'true\' AND n.uuid = \'' + dev + '\' AND m.uuid = \'' + x + '\' AND NOT (n)-[:SUBSCRIBE]->(m) RETURN n.uuid';
+                const e: string = 'MATCH (n: Service), (m: Service) WHERE n.online = \'true\' AND n.uuid = \'' + dev + '\' AND m.uuid = \'' + x + '\' AND NOT (n)-[:SUBSCRIBE]->(m) RETURN n.uuid';
                 const res2 = await returnQuery(e);
                 if (res2.records.length == 0) {
-                    logger.warn('Device with uuid \'' + dev + '\' is available for this configuration!');
+                    logger.warn('Device with uuid \'' + dev + '\' is not available for this configuration!');
                     //get uuid from alternative
                     let alt = await alternativeConfiguration(dev, x);
                     if(alt) {
                         initRelationship(x, alt);
                     } else {
-                        logger.info('No Device found :(');
+                        logger.info('No replacement device found for \'' + dev + '\'');
                         return;
                     }
                 } else {
                     initRelationship(x, dev);
                 }
-                configureServiceUUID(dev);
+                setDependencies(dev);
             }
-            configureServiceUUID(x);
+            setDependencies(x);
+            const finished: string = 'MATCH (n: Service { uuid: \'' + x + '\' }) SET n.configured = \'true\'';
+            await returnQuery(finished);
 
         };
 
@@ -186,32 +184,22 @@ async function initiateDevices(res: QueryResult) {
     }
 }
 
-async function searchMainDevices() {
-
-    logger.info('Searching for main devices');
-
-    // Search for devices with all main devices
-    const a: string = 'MATCH (n: Automation) WHERE NOT n.mainDevices = \'\' RETURN n.mainDevices, n.uuid';
-    const res = await returnQuery(a);
-    initiateDevices(res);
-}
-
 async function initRelationship(dev1:string, dev2:string) {
     logger.info('Adding relation from \"' + dev1 + '\" to \"' + dev2 + '\".');
-    const e: string = 'MATCH (n: Automation {uuid: \'' + dev1 + '\'}), (m: Automation {uuid: \'' + dev2 + '\'}) CREATE (m)-[r:SUBSCRIBE]->(n)';
+    const e: string = 'MATCH (n: Service {uuid: \'' + dev1 + '\'}), (m: Service {uuid: \'' + dev2 + '\'}) CREATE (m)-[r:SUBSCRIBE]->(n)';
     await returnQuery(e);
-    const g: string = 'MATCH (n: Automation {uuid: \'' + dev1 + '\'}) SET n.initiated = \'true\'';
+    const g: string = 'MATCH (n: Service {uuid: \'' + dev1 + '\'}) SET n.initiated = \'true\'';
     await returnQuery(g);
     return;
 }
 
+//read device types from json
 async function importDeviceGroups() {
     logger.info('Import external Device Groups...');
     const deviceGroupsFolder = './config/device-groups/';
     const fs = require('fs');
     const files = await fs.readdirSync(deviceGroupsFolder);
 
-    //await fs.readdirSync(deviceGroupsFolder).forEach(async (file: any) => {
     for (let file of files) {
         let fullPath = path.join(deviceGroupsFolder, file);
         let config: Array<DeviceGroup> = JSON.parse(fs.readFileSync(fullPath.toString(), 'utf8'));
@@ -232,6 +220,7 @@ async function importDeviceGroups() {
     };
 }
 
+//create service based on a service entry
 export async function addService(x: ServiceEntry){
 
     const fs = require('fs');
@@ -241,18 +230,25 @@ export async function addService(x: ServiceEntry){
     let newworld = type.split('-').join('_');
 
     // If Device does not exist, add it to DB
-    const a: string = 'MATCH (n: Automation:' + newworld + ' { uuid: \'' + x.uuid + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\', online: \'' + x.online + '\', room: \'' + x.room + '\'  }) RETURN n';
+    const a: string = 'MATCH (n: Service:' + newworld + ' { uuid: \'' + x.uuid + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\', online: \'' + x.online + '\', room: \'' + x.room + '\'  }) RETURN n';
 
     const query = await returnQuery(a);
     if (query.records.length == 0) {
-        const b: string = 'CREATE (n: Automation:' + newworld + ' { uuid: \'' + x.uuid + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\', online: \'' + x.online + '\', room: \'' + x.room + '\', instantiated: \'false\' })';
-        await returnQuery(b);
+
+        //check if service can be configured (has main devices)
+        if (x.mainDevices.length > 0) {
+            const b: string = 'CREATE (n: Service:' + newworld + ' { uuid: \'' + x.uuid + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\', online: \'' + x.online + '\', room: \'' + x.room + '\', configured: \'false\' })';
+            await returnQuery(b);
+        } else {
+            const b: string = 'CREATE (n: Service:' + newworld + ' { uuid: \'' + x.uuid + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\', online: \'' + x.online + '\', room: \'' + x.room + '\', configured: \'true\' })';
+            await returnQuery(b);
+        }
         const file = await fs.readFileSync(`./config/services/${type}.json`, 'utf8');
         const back = await parseAs(ServiceConfig, JSON.parse(file.toString()));
         if (!back) {
             return;
         } 
-        await instantiateService(x, back);
+        await createService(x, back);
     }
 }
 

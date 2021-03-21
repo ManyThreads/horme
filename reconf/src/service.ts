@@ -4,7 +4,7 @@ import fs from 'fs/promises';
 import chalk from 'chalk';
 import mqtt from 'async-mqtt';
 
-import db, { getSEfromUuid, ServiceEntry, ServiceSelection } from './db';
+import db, { getSEfromUuid, ServiceEntry, removeService } from './db';
 import {
     env as getEnv,
     util,
@@ -17,7 +17,7 @@ import {
 import ServiceFactory from './service/ServiceFactory';
 import { returnQuery } from './neo4j';
 
-export default { cleanUp, configureServices, removeService, stopService, startService };
+export default { cleanUp, configureService: setDependencies, removeService: _removeService, stopService, startService };
 
 /** The service UUID. */
 export type Uuid = string;
@@ -42,55 +42,6 @@ const client = mqtt.connect(env.host, env.auth);
 const services: Map<Uuid, ServiceHandle> = new Map();
 const factory = new ServiceFactory();
 const serviceNamePrefix = 'horme-';
-
-/** Instantiates and configures the set of services selected from the database. */
-async function configureServices(): Promise<void> {
-    // query current service selection from database
-    // Only need to be done one per execution
-    //const result = await db.queryServiceSelection();
-
-    // instantiate all not yet instantiated services, insert them into global map
-    //Dont need services. Can be extracted from database.
-    //const instantiated = await instantiateServices();
-    // set and configure all service dependencies
-    //await Promise.all(instantiated.map((args) => configureService(args, [] ,true)));
-}
-
-/** Removes the service with the given `uuid` and triggers a full service selection
- *  and configuration update. */
-async function removeService(uuid: string): Promise<void> {
-    // retrieve updated service selection from database
-    //TODO
-    //const reconfiguration = await db.queryServiceSelection({ del: [uuid] });
-
-    const previousServices = Array.from(services.values());
-    //const newServices = reconfiguration
-    /*const newServices = Array.from(
-        reconfiguration.flatMap(([_, instances]) => {
-            return instances.map((instance) => instance.uuid);
-        })
-    );*/
-
-    // determine services which are no longer present in updated service selection
-    //const removals = previousServices.filter((prev) => newServices.forEach((test) => test.uuid != prev.info.uuid))
-
-    // remove all services no longer present in the new configuration and kill their respective
-    // processes
-    /*for (const service of removals) {
-        logger.warn('killing process of service ' + chalk.underline(service.info.uuid));
-
-        stopService(service.info.uuid);
-        services.delete(service.info.uuid);
-    }*/
-
-    // instantiate all new services
-    //TODO
-    //const instantiatedServices = await instantiateServices(reconfiguration);
-
-    // configure all newly instantiated services and re-configure all changed services
-    logger.info('initiating service reconfiguration...');
-    //await Promise.all(instantiatedServices.map((args) => configureService(args, [])));
-}
 
 export async function startService(uuid: string) {
     const entry = await getSEfromUuid(uuid);
@@ -119,30 +70,13 @@ function cleanUp(): void {
     execSync(`docker rm $(docker ps -a -q -f "name=${serviceNamePrefix}")`);
 }
 
-/** Instantiates all (not yet instantiated) services in the given `selection`. */
-/*async function instantiateServices(
-    selection: ServiceSelection
-): Promise<[ServiceHandle, Uuid[]][]> {
-    const promises = await Promise.all(
-        selection.map(async ([type, selected]) => {
-            const config = await readConfig(type);
-            if (!config) return [];
-            return await Promise.all(
-                Array.from(selected.map((sel) => instantiateService(sel, config)))
-            );
-        })
-    );
-
-    return promises.flat();
-}*/
-
 async function readConfig(type: ServiceType): Promise<ServiceConfig | undefined> {
     const file = await fs.readFile(`./config/services/${type}.json`);
     return parseAs(ServiceConfig, JSON.parse(file.toString()));
 }
 
 /** Instantiates a service of the given type/description/config if it does not already exist. */
-export async function instantiateService(
+export async function createService(
     entry: ServiceEntry,
     config: ServiceConfig
 ): Promise<[ServiceHandle]> {
@@ -162,9 +96,8 @@ export async function instantiateService(
 }
 
 /** Sets the dependencies of the corresponding service instance. */
-export async function configureServiceUUID(uuid: string) {
-    logger.error('Configuring Service: ' + uuid);
-    const config: string = 'MATCH (m: Automation { uuid: \'' + uuid +'\' }), ( n: Automation ) WHERE (n)-[:SUBSCRIBE]->(m) RETURN n.uuid';
+export async function setDependencies(uuid: string) {
+    const config: string = 'MATCH (m: Service { uuid: \'' + uuid +'\' }), ( n: Service ) WHERE (n)-[:SUBSCRIBE]->(m) RETURN n.uuid';
     let depen = await returnQuery(config);
     let uuids: string[] = [];
     for(let x of depen.records) {
@@ -173,14 +106,33 @@ export async function configureServiceUUID(uuid: string) {
     let i = await getSEfromUuid(uuid);
     if (typeof i !== 'undefined') {
         let handle = getServiceHandle(i);
-        configureService(handle, uuids);
+        transferConfig(handle, uuids);
     } else {
         logger.error('No ServiceEntry found..');
     }
 }
 
+/** Removes the service with the given `uuid` and triggers a full service selection
+ *  and configuration update. */
+async function _removeService(uuid: string): Promise<void> {
+
+    let se = await getSEfromUuid(uuid);
+    if (!se) return;
+    let toRemove = getServiceHandle(se);
+
+    // retrieve updated service selection from database
+    await removeService(uuid);
+
+    // remove all services no longer present in the new configuration and kill their respective
+    // processes
+    logger.warn('killing process of service ' + chalk.underline(toRemove.info.uuid));
+
+    stopService(toRemove.info.uuid);
+    services.delete(toRemove.info.uuid);
+}
+
 /** Sets the dependencies of the corresponding service instance. */
-async function configureService(service: ServiceHandle, depends: Uuid[], init = false) {
+async function transferConfig(service: ServiceHandle, depends: Uuid[], init = false) {
     const { add, del } = setServiceDependencies(service, depends);
     const reconfigure = add.length && del.length;
 
