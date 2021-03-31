@@ -1,6 +1,6 @@
 import neo4j, { Driver } from 'neo4j-driver';
 import { env as getEnv, util } from 'horme-common';
-import { ServiceEntry } from './db';
+import { ServiceEntry } from './PersistentStorage';
 
 const env = getEnv.readEnvironment('reconf');
 const logger = util.logger;

@@ -1,5 +1,5 @@
-import { ServiceEntry } from "../db";
-import { ServiceHandle } from "../service";
+import { ServiceEntry } from "../PersistentStorage";
+import { ServiceHandle } from "../ServiceController";
 
 export default class ServiceFactory {
     createServiceHandle(entry: ServiceEntry, topic: string): ServiceHandle {
