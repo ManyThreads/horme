@@ -1,7 +1,8 @@
 import neo4j, { Driver } from 'neo4j-driver';
-import { env as getEnv, util } from 'horme-common';
+import { env as getEnv, util, DeviceMessage } from 'horme-common';
 import { ServiceEntry } from './db';
 import { QueryResult } from 'neo4j-driver/types/result';
+import mqtt from 'async-mqtt';
 
 const env = getEnv.readEnvironment('reconf');
 const logger = util.logger;
@@ -26,12 +27,12 @@ export async function connectNeo4j() {
             if (await finish) {
                 driver = d;
                 logger.info('Connected to Neo4j!');
+                initDataListener();
                 return;
             }
             
         } catch (error) {}
     }
-    
 }
 
 //reset whole database
@@ -66,9 +67,34 @@ async function updateAllDependencies(config: [string, ServiceEntry[]][]) {
     await resetAllDependencies();
 }
 
-export async function updateDatabase(topic: string, message: string) {
-    logger.error('topic: ' + topic);
-    logger.error('message: ' + message);
+export async function initDataListener() {
+    logger.info('Setup Database Listener...');
+    // connect MQTT client
+    const client = await mqtt.connectAsync(env.host, env.auth);
+    // set MQTT client message event listener
+    client.on('message', (topic, msg) => {
+        updateState(topic, msg.toString());
+    });
+    await client.subscribe([
+        `data/${process.env.HORME_APARTMENT}/bedroom/#`,
+    ]);
+}
+
+export async function updateState(topic: string, message: string) {
+
+    //search for id
+    var splitted = topic.split('_', 2); 
+    var id = splitted[1];
+    logger.error(splitted[1]);
+
+    //parse message to devicemsg
+    //extract value from devicemsg
+    const deviceMsg = DeviceMessage.check(JSON.parse(message));
+    var val = deviceMsg.value;
+
+    //set value in db
+    const finished: string = 'MATCH (n: Service { uuid: \'' + id + '\' }) SET n.state = \'' + val+ '\'';
+    await returnQuery(finished);
 }
 
 //Reset all current dependencies

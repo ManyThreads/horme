@@ -261,5 +261,5 @@ export function buildTopic(entry: ServiceEntry): string {
         entry.room !== null
             ? `${process.env.HORME_APARTMENT}/${entry.room}`
             : `${process.env.HORME_APARTMENT}/global`;
-    return `${base}/${entry.type}${entry.uuid}`;
+    return `${base}/${entry.type}_${entry.uuid}`;
 }

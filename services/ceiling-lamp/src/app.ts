@@ -108,7 +108,6 @@ async function handleDataMessage(
         value: device.value,
         timestamp: new Date().getTime(),
     };
-
     await client.publish(sendTopic, JSON.stringify(response), { retain: true });
     logger.debug(`retained state set to: '${device.value}'`)
 }

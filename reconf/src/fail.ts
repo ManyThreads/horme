@@ -1,5 +1,4 @@
 import mqtt from 'async-mqtt';
-import { updateDatabase } from './neo4j';
 import { env as getEnv, util, FailureMessage, parseAs } from 'horme-common';
 
 import DefaultHandler from './failure/DefaultHandler';
@@ -16,7 +15,6 @@ async function setupFailureListener(): Promise<void> {
     // set MQTT client message event listener
     client.on('message', (topic, msg) => {
         onFailure(topic, msg).catch((err) => util.abort(err));
-        updateDatabase(topic, msg.toString());
     });
 
     await client.subscribe([
