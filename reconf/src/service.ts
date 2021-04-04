@@ -4,7 +4,7 @@ import fs from 'fs/promises';
 import chalk from 'chalk';
 import mqtt from 'async-mqtt';
 
-import db, { getSEfromUuid, ServiceEntry, removeService } from './db';
+import db, { getSEfromUuid, ServiceEntry, removeService, initMissingServices, disableService } from './db';
 import {
     env as getEnv,
     util,
@@ -120,8 +120,25 @@ async function _removeService(uuid: string): Promise<void> {
     if (!se) return;
     let toRemove = getServiceHandle(se);
 
-    // retrieve updated service selection from database
-    await removeService(uuid);
+    //search for all services that did get information from malfunctional device
+    const config: string = 'MATCH (n: Service { uuid: \'' + uuid +'\' }), ( m: Service ) WHERE (n)-[:SUBSCRIBE]->(m) RETURN m.uuid';
+    let depen = await returnQuery(config);
+
+    //retrieve updated service selection from database
+    await disableService(uuid);
+
+    //set those services to unconfigured
+    for(let x of depen.records) {
+        const unconfservice: string = 'MATCH (n: Service)-[r:SUBSCRIBE]->(m: Service) WHERE m.uuid = \'' + x.get('m.uuid') +'\' DELETE r';
+        await returnQuery(unconfservice);
+
+        //delete all relations from them
+        const unconfigure: string = 'MATCH (n: Service { uuid: \'' + x.get('m.uuid') +'\', online:  \'true\' }) SET n.configured = \'false\'';
+        await returnQuery(unconfigure);
+    }
+
+    //reconfigure all these services
+    initMissingServices();
 
     // remove all services no longer present in the new configuration and kill their respective
     // processes
@@ -155,6 +172,10 @@ function _startService(entry: ServiceEntry, config: ServiceConfig, topic: string
         serviceNamePrefix + entry.uuid,
         '-e',
         'HORME_LOG_LEVEL=' + env.logLevel,
+        '-e',
+        'HORME_NEO4J_USER=' + process.env.HORME_MQTT_USER,
+        '-e',
+        'HORME_NEO4J_PASS=' + process.env.HORME_MQTT_PASS,
         '-e',
         'HORME_MQTT_HOST=' + env.host,
         '-e',

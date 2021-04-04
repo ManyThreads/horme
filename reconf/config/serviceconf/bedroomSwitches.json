@@ -15,4 +15,13 @@
     "room": "bedroom",
     "configMsg": "",
     "online": true
+},
+{
+    "type": "remote-switch",
+    "uuid": "fra2",
+    "mainDevices": [],
+    "replacementDevices": "switches",
+    "room": "bedroom",
+    "configMsg": "",
+    "online": true
 }]

@@ -37,7 +37,7 @@ export type ServiceEntry = {
 async function initializeDatabase() {
     logger.info('Import external Services...');
     await importServices();
-    logger.info('Import external DeviceGroups...');
+    logger.info('Import external Device Groups...');
     await importDeviceGroups();
     logger.info('Import external MainDevices...');
     await initMissingServices();
@@ -115,7 +115,6 @@ async function alternativeConfiguration(dev:string, to:string) {
 }
 
 //remove service from db
-//TODO: remove depends
 export async function removeService(uuid: string): Promise<void> {
     const a: string = 'MATCH (n: Service { uuid: \'' + uuid + '\' }) RETURN n';
     let back = await returnQuery(a);
@@ -128,12 +127,24 @@ export async function removeService(uuid: string): Promise<void> {
     }
 }
 
+//set service offline
+export async function disableService(uuid: string): Promise<void> {
+    const a: string = 'MATCH (n: Service { uuid: \'' + uuid + '\' }) RETURN n';
+    let back = await returnQuery(a);
+    if(back.records.length != 0){
+        logger.info('Set service with uuid \'' + uuid + '\' offline!');
+
+        //DETACH implies that all relations are deleted too
+        const removeQuery: string = 'MATCH (n: Service { uuid: \'' + uuid + '\' }) SET n.online = \'false\'';
+        back = await returnQuery(removeQuery);
+    }
+}
+
 
 //should be called when new devices are added to net network/switched state to online again
 export async function initMissingServices() {
     // Search for devices which are not configured
     const a: string = 'MATCH (n: Service) WHERE n.configured = \'false\' AND NOT n.mainDevices = \'\' RETURN n.mainDevices, n.uuid';
-
     const res = await returnQuery(a);
     configureServices(res);
 }
@@ -195,7 +206,6 @@ async function initRelationship(dev1:string, dev2:string) {
 
 //read device types from json
 async function importDeviceGroups() {
-    logger.info('Import external Device Groups...');
     const deviceGroupsFolder = './config/device-groups/';
     const fs = require('fs');
     const files = await fs.readdirSync(deviceGroupsFolder);

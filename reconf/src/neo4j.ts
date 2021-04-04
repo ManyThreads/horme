@@ -85,7 +85,6 @@ export async function updateState(topic: string, message: string) {
     //search for id
     var splitted = topic.split('_', 2); 
     var id = splitted[1];
-    logger.error(splitted[1]);
 
     //parse message to devicemsg
     //extract value from devicemsg
