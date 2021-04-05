@@ -129,7 +129,7 @@ async function _removeService(uuid: string): Promise<void> {
 
     //set those services to unconfigured
     for(let x of depen.records) {
-        const unconfservice: string = 'MATCH (n: Service)-[r:SUBSCRIBE]->(m: Service) WHERE m.uuid = \'' + x.get('m.uuid') +'\' DELETE r';
+        const unconfservice: string = 'MATCH (n: Service)-[r:SUBSCRIBE]->(m: Service) WHERE m.uuid = \'' + x.get('m.uuid') + '\' DELETE r';
         await returnQuery(unconfservice);
 
         //delete all relations from them

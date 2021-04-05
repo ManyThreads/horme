@@ -250,17 +250,17 @@ export async function addService(x: ServiceEntry){
     let newworld = type.split('-').join('_');
 
     // If Device does not exist, add it to DB
-    const a: string = 'MATCH (n: Service:' + newworld + ' { uuid: \'' + x.uuid + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\', online: \'' + x.online + '\', room: \'' + x.room + '\'  }) RETURN n';
+    const a: string = 'MATCH (n: Service:' + newworld + ' { uuid: \'' + x.uuid + '\', mainDevices: \'' + x.mainDevices + '\', type: \'' + type + '\', replacementDevices: \'' + x.replacementDevices + '\', online: \'' + x.online + '\', room: \'' + x.room + '\'  }) RETURN n';
 
     const query = await returnQuery(a);
     if (query.records.length == 0) {
 
         //check if service can be configured (has main devices)
         if (x.mainDevices.length > 0) {
-            const b: string = 'CREATE (n: Service:' + newworld + ' { uuid: \'' + x.uuid + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\', online: \'' + x.online + '\', room: \'' + x.room + '\', configured: \'false\' })';
+            const b: string = 'CREATE (n: Service:' + newworld + ' { uuid: \'' + x.uuid + '\', mainDevices: \'' + x.mainDevices + '\', type: \'' + type + '\', replacementDevices: \'' + x.replacementDevices + '\', online: \'' + x.online + '\', room: \'' + x.room + '\', configured: \'false\' })';
             await returnQuery(b);
         } else {
-            const b: string = 'CREATE (n: Service:' + newworld + ' { uuid: \'' + x.uuid + '\', mainDevices: \'' + x.mainDevices + '\', replacementDevices: \'' + x.replacementDevices + '\', online: \'' + x.online + '\', room: \'' + x.room + '\', configured: \'true\' })';
+            const b: string = 'CREATE (n: Service:' + newworld + ' { uuid: \'' + x.uuid + '\', mainDevices: \'' + x.mainDevices + '\', type: \'' + type + '\', replacementDevices: \'' + x.replacementDevices + '\', online: \'' + x.online + '\', room: \'' + x.room + '\', configured: \'true\' })';
             await returnQuery(b);
         }
         const file = await fs.readFileSync(`./config/services/${type}.json`, 'utf8');
