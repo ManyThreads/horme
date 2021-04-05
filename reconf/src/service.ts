@@ -66,8 +66,8 @@ async function stopService(uuid: string) {
 
 function cleanUp(): void {
     logger.info('stopping all docker containers.');
-    execSync(`docker stop -t 1 $(docker ps -q -f "name=${serviceNamePrefix}")`);
-    execSync(`docker rm $(docker ps -a -q -f "name=${serviceNamePrefix}")`);
+    execSync(`docker ps -a -q -f "name=${serviceNamePrefix}" | xargs -I {} docker stop -t 1 {} `);
+    execSync(`docker ps -a -q -f "name=${serviceNamePrefix}" | xargs -I {} docker rm {} `);
 }
 
 async function readConfig(type: ServiceType): Promise<ServiceConfig | undefined> {
@@ -163,6 +163,13 @@ async function transferConfig(service: ServiceHandle, depends: Uuid[], init = fa
     }
 }
 
+function getNetworkName(): string {
+    const hostname = execSync(`docker inspect -f \"{{.Name}}\" $HOSTNAME`);
+    const network = execSync(`docker inspect -f \"{{json .NetworkSettings.Networks }}\" ${hostname} `);
+    const network_object = JSON.parse(network.toString());
+    return Object.keys(network_object)[0];
+}
+
 function _startService(entry: ServiceEntry, config: ServiceConfig, topic: string): ServiceProcess {
     const cmd = [
         'run',
@@ -183,7 +190,7 @@ function _startService(entry: ServiceEntry, config: ServiceConfig, topic: string
         '-e',
         'HORME_SERVICE_UUID=' + entry.uuid,
         '--network',
-        'horme_default',
+        `${getNetworkName()}`,
         config.image,
         config.args.join(' '),
     ];
