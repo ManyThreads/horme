@@ -129,6 +129,8 @@ export async function removeService(uuid: string): Promise<void> {
 
 //set service offline
 export async function disableService(uuid: string): Promise<void> {
+
+    //check if service is available
     const a: string = 'MATCH (n: Service { uuid: \'' + uuid + '\' }) RETURN n';
     let back = await returnQuery(a);
     if(back.records.length != 0){
@@ -146,6 +148,8 @@ export async function initMissingServices() {
     // Search for devices which are not configured
     const a: string = 'MATCH (n: Service) WHERE n.configured = \'false\' AND NOT n.mainDevices = \'\' RETURN n.mainDevices, n.uuid';
     const res = await returnQuery(a);
+
+    //configure them
     configureServices(res);
 }
 
@@ -157,50 +161,56 @@ async function configureServices(res: QueryResult) {
         for(const record of res.records) {
             //iterate over all searched main devices
             let md = record.get('n.mainDevices');
-            let x = record.get('n.uuid');
+            let uuid = record.get('n.uuid');
             var splitted = md.split(',', 30);
-            for (let dev of splitted) {
-                const d: string = 'MATCH (n: Service) WHERE n.uuid = \'' + dev + '\' RETURN n.uuid, n.replacementDevices';
+            for (let singlemd of splitted) {
+
+                //iterate over all maindevices
+                const d: string = 'MATCH (n: Service) WHERE n.uuid = \'' + singlemd + '\' RETURN n.uuid, n.replacementDevices';
                 const res1 = await returnQuery(d);
                 if (res1.records.length == 0) {
-                    logger.warn('Device with uuid \'' + dev + '\' does not exist');
+
+                    //if the device does not exists, abort
+                    logger.error('Device with uuid \'' + singlemd + '\' does not exist in the database!');
                     return;
                 }
-
-                const e: string = 'MATCH (n: Service), (m: Service) WHERE n.online = \'true\' AND n.uuid = \'' + dev + '\' AND m.uuid = \'' + x + '\' AND NOT (n)-[:SUBSCRIBE]->(m) RETURN n.uuid';
+                
+                // check if the desired device is available
+                const e: string = 'MATCH (n: Service), (m: Service) WHERE n.online = \'true\' AND n.uuid = \'' + singlemd + '\' AND m.uuid = \'' + uuid + '\' AND NOT (n)-[:SUBSCRIBE]->(m) RETURN n.uuid';
                 const res2 = await returnQuery(e);
                 if (res2.records.length == 0) {
-                    logger.warn('Device with uuid \'' + dev + '\' is not available for this configuration!');
-                    //get uuid from alternative
-                    let alt = await alternativeConfiguration(dev, x);
+                    logger.warn('Device with uuid \'' + singlemd + '\' is not available for this configuration!');
+                    
+                    //desired device is not available,search for an alternative
+                    let alt = await alternativeConfiguration(singlemd, uuid);
                     if(alt) {
-                        initRelationship(x, alt);
+                        initRelationship(uuid, alt);
                     } else {
-                        logger.info('No replacement device found for \'' + dev + '\'');
+                        logger.info('No replacement device found for \'' + singlemd + '\'');
                         return;
                     }
                 } else {
-                    initRelationship(x, dev);
+                    // desired device is available, add relationship
+                    initRelationship(uuid, singlemd);
                 }
-                setDependencies(dev);
+                setDependencies(singlemd);
             }
-            setDependencies(x);
-            const finished: string = 'MATCH (n: Service { uuid: \'' + x + '\' }) SET n.configured = \'true\'';
+            setDependencies(uuid);
+            const finished: string = 'MATCH (n: Service { uuid: \'' + uuid + '\' }) SET n.configured = \'true\'';
             await returnQuery(finished);
 
         };
 
     } else {
-        logger.error('got empty set');
+        logger.error('Nothing to configure. Check your Queries!');
     }
 }
 
+//Adding a Subscribe relation between devices with uuid dev1 and dev2.
 async function initRelationship(dev1:string, dev2:string) {
     logger.info('Adding relation from \"' + dev1 + '\" to \"' + dev2 + '\".');
     const e: string = 'MATCH (n: Service {uuid: \'' + dev1 + '\'}), (m: Service {uuid: \'' + dev2 + '\'}) CREATE (m)-[r:SUBSCRIBE]->(n)';
     await returnQuery(e);
-    const g: string = 'MATCH (n: Service {uuid: \'' + dev1 + '\'}) SET n.initiated = \'true\'';
-    await returnQuery(g);
     return;
 }
 
