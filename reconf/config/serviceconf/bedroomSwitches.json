@@ -1,0 +1,27 @@
+[{
+    "type": "wall-switch",
+    "uuid": "bri",
+    "mainDevices": [],
+    "replacementDevices": "switches",
+    "room": "bedroom",
+    "configMsg": "",
+    "online": true
+},
+{
+    "type": "remote-switch",
+    "uuid": "fra",
+    "mainDevices": [],
+    "replacementDevices": "switches",
+    "room": "bedroom",
+    "configMsg": "",
+    "online": true
+},
+{
+    "type": "remote-switch",
+    "uuid": "fra2",
+    "mainDevices": [],
+    "replacementDevices": "switches",
+    "room": "bedroom",
+    "configMsg": "",
+    "online": true
+}]

@@ -12,19 +12,18 @@ export type Environment = {
     auth?: MqttAuth;
 };
 
-/** The externally configured service environment */
-export type ServiceEnvironment = Environment & { topic: string; uuid: string };
+export type ServiceEnvironment = {
+    logLevel: LogLevelDesc;
+    host: string;
+    auth?: MqttAuth;
+    topic: string; 
+    uuid: string;
+}
 
 /** The MQTT authentication data. */
 export type MqttAuth = {
     username: string;
     pass?: string;
-};
-
-/** The MQTT authentication data. */
-export type Neo4jAuth = {
-    username: string;
-    pass: string;
 };
 
 // lazily initialized (reconf) environment

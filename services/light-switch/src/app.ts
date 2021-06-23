@@ -46,8 +46,11 @@ async function main() {
             if (!isConfigured) {
                 logger.info(`initial configuration received ${msg.info.version}`);
                 if (msg.info.version === 0) {
-                    // simulate a start error
-                    process.exit(1);
+                   if(msg.info.uuid === 'fra') {
+                        // simulate a start error for fra
+                        logger.info('INFO: simulated start error for ' + msg.info.uuid);
+                        process.exit(1);
+                    }
                 }
                 isConfigured = true;
                 simulateSwitchActivity(

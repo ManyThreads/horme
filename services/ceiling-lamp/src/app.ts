@@ -62,16 +62,13 @@ async function handleConfigMessage(client: AsyncMqttClient, topic: string, msg: 
         logger.info('initial configuration received');
         serviceInfo = config.info;
     }
-
     const add = config.add.map(sub => 'data/' + sub.topic);
     const del = config.del.map(sub => 'data/' + sub.topic);
-
     if (add.length > 0) {
         subCount += add.length;
         await client.subscribe(add);
         logger.debug('subscribed to topic(s): ' + add.join(', '));
     }
-
     if (del.length > 0) {
         subCount -= del.length;
         await client.subscribe(del);
@@ -108,7 +105,6 @@ async function handleDataMessage(
         value: device.value,
         timestamp: new Date().getTime(),
     };
-
     await client.publish(sendTopic, JSON.stringify(response), { retain: true });
     logger.debug(`retained state set to: '${device.value}'`)
 }

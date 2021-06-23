@@ -4,7 +4,7 @@ import fs from 'fs/promises';
 import chalk from 'chalk';
 import mqtt from 'async-mqtt';
 
-import db, { queryService, ServiceEntry, ServiceSelection } from './db';
+import db, { getSEfromUuid, ServiceEntry, removeService, initMissingServices, disableService } from './db';
 import {
     env as getEnv,
     util,
@@ -15,8 +15,9 @@ import {
     parseAs,
 } from 'horme-common';
 import ServiceFactory from './service/ServiceFactory';
+import { returnQuery } from './neo4j';
 
-export default { cleanUp, configureServices, removeService, startService, stopService };
+export default { cleanUp, configureService: setDependencies, removeService: _removeService, stopService, startService };
 
 /** The service UUID. */
 export type Uuid = string;
@@ -42,60 +43,17 @@ const services: Map<Uuid, ServiceHandle> = new Map();
 const factory = new ServiceFactory();
 const serviceNamePrefix = 'horme-';
 
-/** Instantiates and configures the set of services selected from the database. */
-async function configureServices(): Promise<void> {
-    // query current service selection from database
-    const result = await db.queryServiceSelection();
-    // instantiate all not yet instantiated services, insert them into global map
-    const instantiated = await instantiateServices(result);
-    // set and configure all service dependencies
-    await Promise.all(instantiated.map((args) => configureService(...args, true)));
-}
-
-/** Removes the service with the given `uuid` and triggers a full service selection
- *  and configuration update. */
-async function removeService(uuid: string): Promise<void> {
-    // retrieve updated service selection from database
-    const reconfiguration = await db.queryServiceSelection({ del: [uuid] });
-
-    const previousServices = Array.from(services.values());
-    const newServices = Array.from(
-        reconfiguration.flatMap(([_, instances]) => {
-            return instances.map((instance) => instance.uuid);
-        })
-    );
-
-    // determine services which are no longer present in updated service selection
-    const removals = previousServices.filter((prev) => !newServices.includes(prev.info.uuid));
-
-    // remove all services no longer present in the new configuration and kill their respective
-    // processes
-    for (const service of removals) {
-        logger.warn('killing process of service ' + chalk.underline(service.info.uuid));
-
-        stopService(service.info.uuid);
-        services.delete(service.info.uuid);
-    }
-
-    // instantiate all new services
-    const instantiatedServices = await instantiateServices(reconfiguration);
-
-    // configure all newly instantiated services and re-configure all changed services
-    logger.info('initiating service reconfiguration...');
-    await Promise.all(instantiatedServices.map((args) => configureService(...args)));
-}
-
-async function startService(uuid: string) {
-    const entry = await queryService(uuid);
+export async function startService(uuid: string) {
+    const entry = await getSEfromUuid(uuid);
     if (!entry) return;
     const config = await readConfig(entry.type);
     if (!config) return;
 
-    logger.debug(`Start service ${uuid}`)
+    logger.debug(`Start service ${uuid}`);
 
     const handle = getServiceHandle(entry);
     handle.info.version++; // TODO: not here..
-    configureService(handle, entry.depends);
+
     const proc = _startService(entry, config, buildTopic(entry));
     handle.proc = proc;
     updateServiceHandle(handle);
@@ -108,25 +66,8 @@ async function stopService(uuid: string) {
 
 function cleanUp(): void {
     logger.info('stopping all docker containers.');
-    execSync(`docker stop -t 1 $(docker ps -q -f "name=${serviceNamePrefix}")`);
-    execSync(`docker rm $(docker ps -a -q -f "name=${serviceNamePrefix}")`);
-}
-
-/** Instantiates all (not yet instantiated) services in the given `selection`. */
-async function instantiateServices(
-    selection: ServiceSelection
-): Promise<[ServiceHandle, Uuid[]][]> {
-    const promises = await Promise.all(
-        selection.map(async ([type, selected]) => {
-            const config = await readConfig(type);
-            if (!config) return [];
-            return await Promise.all(
-                Array.from(selected.map((sel) => instantiateService(sel, config)))
-            );
-        })
-    );
-
-    return promises.flat();
+    execSync(`docker ps -a -q -f "name=${serviceNamePrefix}" | xargs -I {} docker stop -t 1 {} `);
+    execSync(`docker ps -a -q -f "name=${serviceNamePrefix}" | xargs -I {} docker rm {} `);
 }
 
 async function readConfig(type: ServiceType): Promise<ServiceConfig | undefined> {
@@ -135,11 +76,10 @@ async function readConfig(type: ServiceType): Promise<ServiceConfig | undefined>
 }
 
 /** Instantiates a service of the given type/description/config if it does not already exist. */
-async function instantiateService(
+export async function createService(
     entry: ServiceEntry,
     config: ServiceConfig
-): Promise<[ServiceHandle, Uuid[]]> {
-
+): Promise<[ServiceHandle]> {
     const handle = services.get(entry.uuid);
     if (handle === undefined) {
         const topic = buildTopic(entry);
@@ -148,15 +88,68 @@ async function instantiateService(
         handle.proc = proc;
 
         updateServiceHandle(handle);
-        return [handle, entry.depends];
+        return [handle];
     } else {
         updateServiceHandle(handle);
-        return [handle, entry.depends];
+        return [handle];
     }
 }
 
 /** Sets the dependencies of the corresponding service instance. */
-async function configureService(service: ServiceHandle, depends: Uuid[], init = false) {
+export async function setDependencies(uuid: string) {
+    const config: string = 'MATCH (m: Service { uuid: \'' + uuid +'\' }), ( n: Service ) WHERE (n)-[:SUBSCRIBE]->(m) RETURN n.uuid';
+    let depen = await returnQuery(config);
+    let uuids: string[] = [];
+    for(let x of depen.records) {
+        uuids.push(x.get('n.uuid'));
+    }
+    let i = await getSEfromUuid(uuid);
+    if (typeof i !== 'undefined') {
+        let handle = getServiceHandle(i);
+        transferConfig(handle, uuids);
+    } else {
+        logger.error('No ServiceEntry found..');
+    }
+}
+
+/** Removes the service with the given `uuid` and triggers a full service selection
+ *  and configuration update. */
+async function _removeService(uuid: string): Promise<void> {
+
+    let se = await getSEfromUuid(uuid);
+    if (!se) return;
+    let toRemove = getServiceHandle(se);
+
+    //search for all services that did get information from malfunctional device
+    const config: string = 'MATCH (n: Service { uuid: \'' + uuid +'\' }), ( m: Service ) WHERE (n)-[:SUBSCRIBE]->(m) RETURN m.uuid';
+    let depen = await returnQuery(config);
+
+    //retrieve updated service selection from database
+    await disableService(uuid);
+
+    //set those services to unconfigured
+    for(let x of depen.records) {
+        const unconfservice: string = 'MATCH (n: Service)-[r:SUBSCRIBE]->(m: Service) WHERE m.uuid = \'' + x.get('m.uuid') + '\' DELETE r';
+        await returnQuery(unconfservice);
+
+        //delete all relations from them
+        const unconfigure: string = 'MATCH (n: Service { uuid: \'' + x.get('m.uuid') +'\', online:  \'true\' }) SET n.configured = \'false\'';
+        await returnQuery(unconfigure);
+    }
+
+    //reconfigure all these services
+    initMissingServices();
+
+    // remove all services no longer present in the new configuration and kill their respective
+    // processes
+    logger.warn('killing process of service ' + chalk.underline(toRemove.info.uuid));
+
+    stopService(toRemove.info.uuid);
+    services.delete(toRemove.info.uuid);
+}
+
+/** Sets the dependencies of the corresponding service instance. */
+async function transferConfig(service: ServiceHandle, depends: Uuid[], init = false) {
     const { add, del } = setServiceDependencies(service, depends);
     const reconfigure = add.length && del.length;
 
@@ -170,6 +163,13 @@ async function configureService(service: ServiceHandle, depends: Uuid[], init = 
     }
 }
 
+function getNetworkName(): string {
+    const hostname = execSync(`docker inspect -f \"{{.Name}}\" $HOSTNAME`);
+    const network = execSync(`docker inspect -f \"{{json .NetworkSettings.Networks }}\" ${hostname} `);
+    const network_object = JSON.parse(network.toString());
+    return Object.keys(network_object)[0];
+}
+
 function _startService(entry: ServiceEntry, config: ServiceConfig, topic: string): ServiceProcess {
     const cmd = [
         'run',
@@ -180,13 +180,17 @@ function _startService(entry: ServiceEntry, config: ServiceConfig, topic: string
         '-e',
         'HORME_LOG_LEVEL=' + env.logLevel,
         '-e',
+        'HORME_NEO4J_USER=' + process.env.HORME_MQTT_USER,
+        '-e',
+        'HORME_NEO4J_PASS=' + process.env.HORME_MQTT_PASS,
+        '-e',
         'HORME_MQTT_HOST=' + env.host,
         '-e',
         'HORME_SERVICE_TOPIC=' + topic,
         '-e',
         'HORME_SERVICE_UUID=' + entry.uuid,
         '--network',
-        'horme_default',
+        `${getNetworkName()}`,
         config.image,
         config.args.join(' '),
     ];
@@ -285,5 +289,5 @@ export function buildTopic(entry: ServiceEntry): string {
         entry.room !== null
             ? `${process.env.HORME_APARTMENT}/${entry.room}`
             : `${process.env.HORME_APARTMENT}/global`;
-    return `${base}/${entry.type}${entry.uuid}`;
+    return `${base}/${entry.type}_${entry.uuid}`;
 }
